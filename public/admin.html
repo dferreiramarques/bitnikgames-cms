@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>bitnikgames CMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dferreiramarques/bitnikgames-design-system@main/src/index.css">
+<style>
+  body { padding: 0; }
+  header.top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
+    background: var(--color-white);
+  }
+  header.top h1 { font-family: var(--font-display); font-size: 1.15rem; }
+  main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+
+  .tabs { display: flex; gap: 0.4rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+  .tab-btn {
+    font-family: var(--font-display); font-weight: 600; font-size: 0.85rem;
+    padding: 0.5rem 1rem; border-radius: var(--radius-pill);
+    border: 1.5px solid var(--border); background: var(--color-white); color: var(--text-muted);
+    cursor: pointer;
+  }
+  .tab-btn.active { background: var(--brand-primary); border-color: var(--brand-primary); color: var(--color-white); }
+
+  .list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; }
+  .entry-row {
+    display: flex; align-items: center; gap: 0.8rem;
+    background: var(--color-white); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 0.7rem 1rem; margin-bottom: 0.5rem;
+  }
+  .entry-row .slug { font-family: var(--font-display); font-weight: 600; flex: 1; }
+  .entry-row .slug small { display: block; font-family: var(--font-body); font-weight: 400; color: var(--text-muted); font-size: 0.78rem; }
+  .warn-badge { color: var(--color-brick-deep); font-size: 0.75rem; font-weight: 600; }
+
+  .editor-panes { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+  @media (max-width: 720px) { .editor-panes { grid-template-columns: 1fr; } }
+  .pane label { display: block; font-family: var(--font-display); font-weight: 700; font-size: 0.85rem; margin-bottom: 0.4rem; }
+  .pane textarea {
+    width: 100%; min-height: 420px; font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 0.82rem; line-height: 1.5; padding: 0.8rem; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--bg-alt); color: var(--text); resize: vertical;
+  }
+  .editor-actions { display: flex; gap: 0.6rem; align-items: center; }
+  .slug-row { display: flex; gap: 0.6rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+  .slug-row input {
+    padding: 0.6rem 0.8rem; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-family: var(--font-body); background: var(--color-white); min-width: 240px;
+  }
+  #toast {
+    position: fixed; left: 50%; bottom: 1.5rem; transform: translateX(-50%);
+    background: var(--color-ink); color: var(--color-cream); padding: 0.6rem 1.1rem;
+    border-radius: var(--radius-pill); font-size: 0.85rem; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    z-index: 100;
+  }
+  #toast.show { opacity: 1; }
+  #toast.err { background: var(--color-brick-deep); }
+  .hidden { display: none !important; }
+  #loading { text-align: center; padding: 3rem 0; color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <header class="top">
+    <h1>bitnikgames CMS</h1>
+    <button class="btn btn-ghost btn-sm" id="logout-btn">Sair</button>
+  </header>
+
+  <main>
+    <div id="loading">A carregar…</div>
+
+    <div id="list-view" class="hidden">
+      <div class="tabs" id="collection-tabs"></div>
+      <div class="list-head">
+        <span id="list-count" class="text-muted"></span>
+        <button class="btn btn-primary btn-sm" id="new-btn">+ Novo</button>
+      </div>
+      <div id="entries"></div>
+    </div>
+
+    <div id="editor-view" class="hidden">
+      <button class="btn btn-ghost btn-sm" id="back-btn" style="margin-bottom:1rem">&larr; Voltar à lista</button>
+      <div class="slug-row">
+        <label for="slug-input" style="font-family:var(--font-display);font-weight:700">Slug</label>
+        <input id="slug-input" type="text" placeholder="nome-do-jogo">
+        <span class="text-muted" style="font-size:0.8rem">letras minúsculas, números e hífens</span>
+      </div>
+      <div class="editor-panes">
+        <div class="pane">
+          <label>Português (pt)</label>
+          <textarea id="pt-content" spellcheck="false"></textarea>
+        </div>
+        <div class="pane">
+          <label>English (en)</label>
+          <textarea id="en-content" spellcheck="false"></textarea>
+        </div>
+      </div>
+      <div class="editor-actions">
+        <button class="btn btn-primary" id="save-btn">Guardar</button>
+        <button class="btn btn-ghost" id="delete-btn">Eliminar</button>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast"></div>
+
+<script>
+let COLLECTIONS = null;
+let currentCollection = null;
+let currentSlug = null; // null while creating a new entry
+
+const el = (id) => document.getElementById(id);
+
+function toast(msg, isErr) {
+  const t = el('toast');
+  t.textContent = msg;
+  t.className = isErr ? 'show err' : 'show';
+  setTimeout(() => { t.className = ''; }, 3200);
+}
+
+async function api(path, opts) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    window.location.href = '/index.html';
+    throw new Error('Sessão expirada.');
+  }
+  if (!res.ok) throw new Error(data.error || 'Erro desconhecido.');
+  return data;
+}
+
+async function checkSession() {
+  const { authenticated } = await api('/api/session');
+  if (!authenticated) { window.location.href = '/index.html'; return false; }
+  return true;
+}
+
+async function loadCollections() {
+  COLLECTIONS = await api('/api/collections');
+  const tabsEl = el('collection-tabs');
+  tabsEl.innerHTML = '';
+  Object.entries(COLLECTIONS).forEach(([key, c], i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = c.label;
+    btn.onclick = () => selectCollection(key);
+    btn.dataset.key = key;
+    tabsEl.appendChild(btn);
+  });
+  const firstKey = Object.keys(COLLECTIONS)[0];
+  if (firstKey) selectCollection(firstKey);
+}
+
+function selectCollection(key) {
+  currentCollection = key;
+  document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.key === key));
+  renderEntries();
+}
+
+function renderEntries() {
+  const c = COLLECTIONS[currentCollection];
+  el('list-count').textContent = c.entries.length + (c.entries.length === 1 ? ' entrada' : ' entradas');
+  const wrap = el('entries');
+  wrap.innerHTML = '';
+  if (c.entries.length === 0) {
+    wrap.innerHTML = '<p class="text-muted">Ainda não há nada aqui.</p>';
+  }
+  c.entries.forEach((entry) => {
+    const row = document.createElement('div');
+    row.className = 'entry-row';
+    row.innerHTML =
+      '<span class="slug">' + entry.title + '<small>' + entry.slug + '</small></span>' +
+      (entry.hasEn ? '' : '<span class="warn-badge">falta EN</span>') +
+      '<button class="btn btn-ghost btn-sm">Editar</button>';
+    row.querySelector('button').onclick = () => openEditor(entry.slug);
+    wrap.appendChild(row);
+  });
+  el('list-view').classList.remove('hidden');
+  el('editor-view').classList.add('hidden');
+}
+
+async function openEditor(slug) {
+  currentSlug = slug;
+  el('slug-input').value = slug || '';
+  el('slug-input').disabled = Boolean(slug);
+  el('delete-btn').classList.toggle('hidden', !slug);
+
+  if (slug) {
+    const data = await api('/api/entry?collection=' + currentCollection + '&slug=' + encodeURIComponent(slug));
+    el('pt-content').value = data.pt;
+    el('en-content').value = data.en;
+  } else {
+    const c = COLLECTIONS[currentCollection];
+    el('pt-content').value = '';
+    el('en-content').value = '';
+  }
+  el('list-view').classList.add('hidden');
+  el('editor-view').classList.remove('hidden');
+}
+
+el('new-btn').onclick = () => openEditor(null);
+el('back-btn').onclick = () => renderEntries();
+
+el('save-btn').onclick = async () => {
+  const slug = el('slug-input').value.trim();
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
+    toast('Slug inválido — só letras minúsculas, números e hífens.', true);
+    return;
+  }
+  const pt = el('pt-content').value;
+  const en = el('en-content').value;
+  if (!pt.trim() || !en.trim()) {
+    toast('Precisa de conteúdo em pt e en.', true);
+    return;
+  }
+  el('save-btn').disabled = true;
+  el('save-btn').textContent = 'A guardar…';
+  try {
+    await api('/api/entry', {
+      method: 'PUT',
+      body: JSON.stringify({ collection: currentCollection, slug, pt, en }),
+    });
+    toast('Guardado. O site vai fazer redeploy automaticamente.');
+    await refreshCurrentCollection();
+    renderEntries();
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    el('save-btn').disabled = false;
+    el('save-btn').textContent = 'Guardar';
+  }
+};
+
+el('delete-btn').onclick = async () => {
+  if (!currentSlug) return;
+  if (!confirm('Eliminar "' + currentSlug + '" (pt + en)? Não há undo.')) return;
+  try {
+    await api('/api/entry?collection=' + currentCollection + '&slug=' + encodeURIComponent(currentSlug), {
+      method: 'DELETE',
+    });
+    toast('Eliminado.');
+    await refreshCurrentCollection();
+    renderEntries();
+  } catch (err) {
+    toast(err.message, true);
+  }
+};
+
+async function refreshCurrentCollection() {
+  const fresh = await api('/api/collections');
+  COLLECTIONS = fresh;
+}
+
+el('logout-btn').onclick = async () => {
+  await api('/api/logout', { method: 'POST' });
+  window.location.href = '/index.html';
+};
+
+(async () => {
+  const ok = await checkSession();
+  if (!ok) return;
+  await loadCollections();
+  el('loading').classList.add('hidden');
+})().catch((err) => {
+  el('loading').textContent = 'Erro: ' + err.message;
+});
+</script>
+</body>
+</html>
