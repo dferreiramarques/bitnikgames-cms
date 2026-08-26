@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>bitnikgames CMS — Entrar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dferreiramarques/bitnikgames-design-system@main/src/index.css">
+<style>
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .login-box {
+    background: var(--color-white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card-hover);
+    padding: 2.5rem 2rem;
+    width: min(360px, 100%);
+    text-align: center;
+  }
+  .login-box h1 {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    margin-bottom: 0.3rem;
+  }
+  .login-box p.sub {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+  .field {
+    text-align: left;
+    margin-bottom: 1rem;
+  }
+  .field label {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+  }
+  .field input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    background: var(--bg-alt);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus { border-color: var(--brand-primary); }
+  #error {
+    color: var(--color-brick-deep);
+    font-size: 0.82rem;
+    min-height: 1.2em;
+    margin-bottom: 0.8rem;
+  }
+</style>
+</head>
+<body>
+  <div class="login-box">
+    <h1>bitnikgames CMS</h1>
+    <p class="sub">Entra para editar o catálogo, print &amp; play e blog.</p>
+    <form id="login-form">
+      <div class="field">
+        <label for="username">Utilizador</label>
+        <input id="username" name="username" type="text" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <div id="error"></div>
+      <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Entrar</button>
+    </form>
+  </div>
+
+<script>
+const form = document.getElementById('login-form');
+const errorEl = document.getElementById('error');
+const submitBtn = document.getElementById('submit-btn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorEl.textContent = '';
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'A entrar…';
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Falha ao entrar.');
+    window.location.href = '/admin.html';
+  } catch (err) {
+    errorEl.textContent = err.message;
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Entrar';
+  }
+});
+</script>
+</body>
+</html>
