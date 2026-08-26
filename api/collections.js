@@ -1,3 +1,7 @@
+const { isAuthenticated } = require("./_lib/auth");
+const { listDir, getFile } = require("./_lib/github");
+const { collectionKeys, getCollection } = require("./_lib/collections");
+
 // Cheap frontmatter title peek — avoids pulling in a YAML parser just to
 // show a readable label in the list view. Falls back to the slug itself.
 function peekTitle(markdown, fallback) {
@@ -6,30 +10,12 @@ function peekTitle(markdown, fallback) {
 }
 
 module.exports = async (req, res) => {
-  // Requires are inside the handler, in their own try/catch, on purpose —
-  // temporary diagnostic to surface the *real* error as JSON instead of
-  // Vercel's generic FUNCTION_INVOCATION_FAILED page, which hides it.
-  let isAuthenticated, listDir, getFile, collectionKeys, getCollection;
-  try {
-    ({ isAuthenticated } = require("./_lib/auth"));
-    ({ listDir, getFile } = require("./_lib/github"));
-    ({ collectionKeys, getCollection } = require("./_lib/collections"));
-  } catch (err) {
-    res.status(500).json({ error: "REQUIRE FAILED: " + (err.stack || err.message) });
+  if (!isAuthenticated(req)) {
+    res.status(401).json({ error: "Sessão expirada, entra novamente." });
     return;
   }
-
-  try {
-    if (!isAuthenticated(req)) {
-      res.status(401).json({ error: "Sessão expirada, entra novamente." });
-      return;
-    }
-    if (req.method !== "GET") {
-      res.status(405).json({ error: "Method not allowed" });
-      return;
-    }
-  } catch (err) {
-    res.status(500).json({ error: "AUTH CHECK FAILED: " + (err.stack || err.message) });
+  if (req.method !== "GET") {
+    res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
