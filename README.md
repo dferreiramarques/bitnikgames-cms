@@ -1,4 +1,4 @@
-# bitnikgames CMS
+# bitnik-cms
 
 Um mini CMS git-based para sites Astro com content collections — sem base de
 dados, sem servidor persistente. É só um formulário protegido por password
@@ -95,12 +95,49 @@ Abre `http://localhost:3000`.
 
 ### 7. Deploy
 
-```bash
-npx vercel --prod
-```
+**Usa a dashboard do Vercel, não `vercel --prod` na CLI.** Vercel → Add New →
+Project → **Import Git Repository** → escolhe este repositório (é privado,
+por isso o GitHub App do Vercel precisa de permissão explícita — ver
+"Problema real que já aconteceu" abaixo). Isso liga o projeto ao repositório
+a sério: cada `git push` para `GITHUB_BRANCH` passa a disparar um deploy
+automático sozinho, sem mais nenhum passo.
 
-(ou liga o repositório ao Vercel pela dashboard, como qualquer outro
-projeto — o deploy automático a partir de `main` fica configurado lá.)
+`vercel --prod` a partir da tua máquina faz o oposto do que queres aqui —
+publica um snapshot local e, se o projeto ainda não tiver git ligado,
+o Vercel oferece-se para **criar um repositório GitHub novo e diferente**
+só para esse snapshot. É exatamente assim que este projeto ficou, durante
+uns minutos, com dois repositórios diferentes — um com o código a sério
+(todos os commits, todo o histórico) e outro que o Vercel tinha criado
+sozinho e ao qual o projeto de produção estava realmente ligado. Todos os
+pushes para o repositório "certo" não tinham efeito nenhum, porque o
+Vercel nunca ali esteve a olhar.
+
+## Problema real que já aconteceu (e como o apanhar mais depressa)
+
+**Sintoma:** as funções que fazem qualquer coisa a sério (`/api/collections`,
+`/api/entry`) rebentavam com um genérico `500 FUNCTION_INVOCATION_FAILED`
+— mesmo em pedidos sem sessão, que deviam só devolver `401`. As funções
+simples (`/api/session`, `/api/login`) continuavam a funcionar. Localmente,
+a exata mesma função corria sem problema nenhum, incluindo contra o
+repositório real do GitHub.
+
+**Causa real:** o projeto Vercel de produção estava ligado a um
+repositório diferente daquele para onde os `git push` estavam a ir — um
+repositório que o próprio Vercel tinha criado automaticamente numa
+tentativa anterior de deploy (mensagem de commit: *"Created from
+https://vercel.com/new"*). Cinco pushes seguidos, cinco "correções", zero
+efeito — porque nenhum deles chegava ao sítio certo.
+
+**Como verificar isto primeiro**, antes de tentar arranjar código:
+1. Vercel → o projeto → **Deployments** → confirma que o deployment mais
+   recente tem a mensagem de commit do teu último `git push`, não uma mais
+   antiga.
+2. Se não bater certo: Vercel → **Settings → Git** → confirma o nome exato
+   do repositório ligado.
+3. Repositórios privados precisam de permissão explícita por repositório:
+   [github.com/settings/installations](https://github.com/settings/installations)
+   → Vercel → Configure → confirma que o repositório aparece na lista de
+   acesso.
 
 ## Segurança — o que isto é e não é
 
@@ -126,3 +163,12 @@ projeto — o deploy automático a partir de `main` fica configurado lá.)
 3. Aponta `GITHUB_OWNER`/`GITHUB_REPO` ao repositório certo.
 4. Gera uma password e segredo de sessão novos — não reutilizes os do
    bitnikgames.
+5. No deploy, segue a secção 7 (**Import Git Repository** pela dashboard,
+   não `vercel --prod`) — é o passo onde isto já correu mal uma vez.
+
+## Estado
+
+Em produção, ligado ao [bitnikgames.vercel.app](https://bitnikgames.vercel.app)
+(repositório `bitnikgames`). Testado de ponta a ponta: login, listagem das
+3 coleções, e um ciclo real de criar → ler → apagar uma entrada, confirmado
+como commits reais no GitHub.

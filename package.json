@@ -1,5 +1,5 @@
 {
-  "name": "bitnikgames-cms",
+  "name": "bitnik-cms",
   "version": "0.1.0",
   "description": "Minimal git-backed CMS for Astro content-collection sites — password-gated admin UI that reads/writes markdown files straight to a GitHub repo via serverless functions. No database.",
   "private": true,
