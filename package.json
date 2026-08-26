@@ -5,13 +5,10 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "npx vercel dev",
     "hash-password": "node scripts/hash-password.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3"
-  },
-  "devDependencies": {
-    "vercel": "^37.0.0"
   }
 }
