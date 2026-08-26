@@ -20,6 +20,9 @@ const COLLECTIONS = {
     // collection — must match the target schema having a featured:boolean
     // field with a default, otherwise toggling it does nothing useful.
     supportsFeatured: true,
+    // Allows the list view's drag-and-drop reordering — must match the
+    // target schema having an order:number field with a default.
+    supportsOrder: true,
     template: (slug) =>
       [
         "---",
@@ -32,6 +35,7 @@ const COLLECTIONS = {
         'price: "0€"',
         "tags: []",
         "featured: false",
+        "order: 0",
         `publishedDate: ${new Date().toISOString().slice(0, 10)}`,
         "---",
         "",
@@ -44,6 +48,7 @@ const COLLECTIONS = {
     basePath: "src/content/pnp",
     requiredFields: ["title", "shortDescription", "access", "publishedDate"],
     supportsFeatured: true,
+    supportsOrder: true,
     template: (slug) =>
       [
         "---",
@@ -55,6 +60,7 @@ const COLLECTIONS = {
         "duration: 20",
         "tags: []",
         "featured: false",
+        "order: 0",
         `publishedDate: ${new Date().toISOString().slice(0, 10)}`,
         "---",
         "",
@@ -67,6 +73,7 @@ const COLLECTIONS = {
     basePath: "src/content/posts",
     requiredFields: ["title", "excerpt", "publishedDate"],
     supportsFeatured: true,
+    supportsOrder: true,
     template: (slug) =>
       [
         "---",
@@ -75,6 +82,7 @@ const COLLECTIONS = {
         "readingMinutes: 4",
         "tags: []",
         "featured: false",
+        "order: 0",
         `publishedDate: ${new Date().toISOString().slice(0, 10)}`,
         "---",
         "",
@@ -132,4 +140,27 @@ function validateContent(markdown, collection) {
   return null;
 }
 
-module.exports = { COLLECTIONS, collectionKeys, getCollection, isValidSlug, validateContent };
+// Server-side counterpart to admin.html's readFeatured/writeFeatured, for
+// the numeric order: field the reorder endpoint needs to rewrite. Same
+// deliberately narrow scope — one named top-level key, not a YAML parser.
+function getOrder(markdown) {
+  const m = markdown.match(/^order:\s*(-?\d+)/m);
+  return m ? Number(m[1]) : 0;
+}
+function setOrder(markdown, order) {
+  const line = `order: ${order}`;
+  if (/^order:\s*-?\d+/m.test(markdown)) {
+    return markdown.replace(/^order:\s*-?\d+/m, line);
+  }
+  return markdown.replace(/^---\r?\n/, `---\n${line}\n`);
+}
+
+module.exports = {
+  COLLECTIONS,
+  collectionKeys,
+  getCollection,
+  isValidSlug,
+  validateContent,
+  getOrder,
+  setOrder,
+};

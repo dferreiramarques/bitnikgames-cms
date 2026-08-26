@@ -37,6 +37,10 @@
   .entry-row .slug small { display: block; font-family: var(--font-body); font-weight: 400; color: var(--text-muted); font-size: 0.78rem; }
   .warn-badge { color: var(--color-brick-deep); font-size: 0.75rem; font-weight: 600; }
   .featured-badge { color: var(--brand-primary); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+  .entry-row[draggable="true"] { cursor: grab; }
+  .entry-row.dragging { opacity: 0.4; }
+  .drag-handle { color: var(--text-muted); font-size: 1.1rem; line-height: 1; cursor: grab; flex-shrink: 0; }
+  .order-hint { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem; }
 
   .featured-row {
     display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
@@ -197,27 +201,91 @@ function selectCollection(key) {
   renderEntries();
 }
 
+let dragSlug = null; // slug currently being dragged, or null
+
 function renderEntries() {
   const c = COLLECTIONS[currentCollection];
   el('list-count').textContent = c.entries.length + (c.entries.length === 1 ? ' entrada' : ' entradas');
   const wrap = el('entries');
   wrap.innerHTML = '';
-  if (c.entries.length === 0) {
-    wrap.innerHTML = '<p class="text-muted">Ainda não há nada aqui.</p>';
+
+  if (c.supportsOrder && c.entries.length > 1) {
+    const hint = document.createElement('p');
+    hint.className = 'order-hint';
+    hint.textContent = '⠿ Arrasta para mudar a ordem no site (jogos destacados na homepage seguem esta ordem).';
+    wrap.appendChild(hint);
   }
+
+  if (c.entries.length === 0) {
+    wrap.innerHTML += '<p class="text-muted">Ainda não há nada aqui.</p>';
+  }
+
   c.entries.forEach((entry) => {
     const row = document.createElement('div');
     row.className = 'entry-row';
+    row.dataset.slug = entry.slug;
     row.innerHTML =
+      (c.supportsOrder ? '<span class="drag-handle">⠿</span>' : '') +
       '<span class="slug">' + entry.title + '<small>' + entry.slug + '</small></span>' +
       (entry.featured ? '<span class="featured-badge">★ destacado</span>' : '') +
       (entry.hasEn ? '' : '<span class="warn-badge">falta EN</span>') +
       '<button class="btn btn-ghost btn-sm">Editar</button>';
     row.querySelector('button').onclick = () => openEditor(entry.slug);
+
+    if (c.supportsOrder) {
+      row.draggable = true;
+      row.addEventListener('dragstart', () => {
+        dragSlug = entry.slug;
+        row.classList.add('dragging');
+      });
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        dragSlug = null;
+        saveOrder();
+      });
+      row.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (!dragSlug || dragSlug === entry.slug) return;
+        const draggedRow = wrap.querySelector('[data-slug="' + CSS.escape(dragSlug) + '"]');
+        if (!draggedRow) return;
+        // Move the actual dragged element via insertBefore instead of
+        // re-rendering the list — replacing DOM nodes mid-drag breaks the
+        // native HTML5 drag gesture (the browser loses track of the node
+        // that started the drag).
+        const rect = row.getBoundingClientRect();
+        const before = e.clientY - rect.top < rect.height / 2;
+        wrap.insertBefore(draggedRow, before ? row : row.nextSibling);
+      });
+    }
+
     wrap.appendChild(row);
   });
   el('list-view').classList.remove('hidden');
   el('editor-view').classList.add('hidden');
+}
+
+// Reads the current DOM order (already live-updated by the dragover
+// handler above) and persists it as the new order:0,1,2... for every
+// entry in this collection.
+async function saveOrder() {
+  const c = COLLECTIONS[currentCollection];
+  if (!c.supportsOrder) return;
+  const domSlugs = [...el('entries').querySelectorAll('.entry-row')].map((r) => r.dataset.slug);
+  const before = c.entries.map((e) => e.slug);
+  if (domSlugs.join(',') === before.join(',')) return; // nothing actually moved
+
+  try {
+    await api('/api/reorder', {
+      method: 'POST',
+      body: JSON.stringify({ collection: currentCollection, slugs: domSlugs }),
+    });
+    toast('Ordem guardada.');
+    await refreshCurrentCollection();
+    renderEntries();
+  } catch (err) {
+    toast(err.message, true);
+    renderEntries(); // revert the optimistic DOM move on failure
+  }
 }
 
 async function openEditor(slug) {

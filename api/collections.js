@@ -1,6 +1,6 @@
 const { isAuthenticated } = require("./_lib/auth");
 const { listDir, getFile } = require("./_lib/github");
-const { collectionKeys, getCollection } = require("./_lib/collections");
+const { collectionKeys, getCollection, getOrder } = require("./_lib/collections");
 
 // Cheap frontmatter title peek — avoids pulling in a YAML parser just to
 // show a readable label in the list view. Falls back to the slug itself.
@@ -27,7 +27,7 @@ module.exports = async (req, res) => {
   try {
     const result = {};
     for (const key of collectionKeys()) {
-      const { label, basePath, supportsFeatured } = getCollection(key);
+      const { label, basePath, supportsFeatured, supportsOrder } = getCollection(key);
       const ptFiles = await listDir(`${basePath}/pt`);
       const enNames = new Set((await listDir(`${basePath}/en`)).map((f) => f.name));
 
@@ -42,12 +42,17 @@ module.exports = async (req, res) => {
               title: pt ? peekTitle(pt.content, slug) : slug,
               hasEn: enNames.has(f.name),
               featured: pt ? peekFeatured(pt.content) : false,
+              order: pt ? getOrder(pt.content) : 0,
             };
           })
       );
 
-      entries.sort((a, b) => a.slug.localeCompare(b.slug));
-      result[key] = { label, entries, supportsFeatured: Boolean(supportsFeatured) };
+      // Same rule as the site's sortEntries(): order ascending, slug as a
+      // stable tiebreak (the site breaks ties by publishedDate instead,
+      // but the list here doesn't have that loaded — slug is good enough
+      // to keep the list from jumping around between reloads).
+      entries.sort((a, b) => a.order - b.order || a.slug.localeCompare(b.slug));
+      result[key] = { label, entries, supportsFeatured: Boolean(supportsFeatured), supportsOrder: Boolean(supportsOrder) };
     }
     res.status(200).json(result);
   } catch (err) {
