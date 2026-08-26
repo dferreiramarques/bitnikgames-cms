@@ -1,6 +1,6 @@
 const { isAuthenticated } = require("./_lib/auth");
 const { getFile, putFile, deleteFile } = require("./_lib/github");
-const { getCollection, isValidSlug } = require("./_lib/collections");
+const { getCollection, isValidSlug, validateContent } = require("./_lib/collections");
 
 function paths(collectionKey, slug) {
   const { basePath } = getCollection(collectionKey);
@@ -49,6 +49,20 @@ module.exports = async (req, res) => {
       const { pt: ptContent, en: enContent } = req.body || {};
       if (typeof ptContent !== "string" || typeof enContent !== "string") {
         res.status(400).json({ error: "Falta o conteúdo em pt e/ou en." });
+        return;
+      }
+      // Validated against the target site's schema *before* anything
+      // touches GitHub — this is what stops invalid content (e.g. no
+      // frontmatter at all) from ever reaching a real commit and breaking
+      // the site's build, regardless of what the UI did or didn't check.
+      const ptError = validateContent(ptContent, collection);
+      if (ptError) {
+        res.status(400).json({ error: `pt inválido: ${ptError}` });
+        return;
+      }
+      const enError = validateContent(enContent, collection);
+      if (enError) {
+        res.status(400).json({ error: `en inválido: ${enError}` });
         return;
       }
       const [ptExisting, enExisting] = await Promise.all([getFile(p.pt), getFile(p.en)]);

@@ -192,15 +192,17 @@ async function openEditor(slug) {
   el('slug-input').disabled = Boolean(slug);
   el('delete-btn').classList.toggle('hidden', !slug);
 
-  if (slug) {
-    const data = await api('/api/entry?collection=' + currentCollection + '&slug=' + encodeURIComponent(slug));
-    el('pt-content').value = data.pt;
-    el('en-content').value = data.en;
-  } else {
-    const c = COLLECTIONS[currentCollection];
-    el('pt-content').value = '';
-    el('en-content').value = '';
-  }
+  // For a brand new entry there's no real slug yet — ask the server for
+  // the template anyway using a throwaway placeholder slug (the entry
+  // doesn't exist, so /api/entry's GET already falls back to
+  // collection.template() for exactly this case). Pre-filling with a
+  // real, schema-valid template instead of a blank textarea is what
+  // stops a quick "just testing the button" save from writing invalid
+  // frontmatter straight into the live site.
+  const fetchSlug = slug || 'novo-slug';
+  const data = await api('/api/entry?collection=' + currentCollection + '&slug=' + encodeURIComponent(fetchSlug));
+  el('pt-content').value = data.pt;
+  el('en-content').value = data.en;
   el('list-view').classList.add('hidden');
   el('editor-view').classList.remove('hidden');
 }

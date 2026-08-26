@@ -12,6 +12,10 @@ const COLLECTIONS = {
   games: {
     label: "Catálogo",
     basePath: "src/content/games",
+    // Fields the target Zod schema (src/content/config.ts) requires with
+    // no default — everything else (price, tags, featured) either has a
+    // schema default or is genuinely optional, so leaving it out is fine.
+    requiredFields: ["title", "shortDescription", "players", "duration", "age", "status", "publishedDate"],
     template: (slug) =>
       [
         "---",
@@ -34,6 +38,7 @@ const COLLECTIONS = {
   pnp: {
     label: "Print & Play",
     basePath: "src/content/pnp",
+    requiredFields: ["title", "shortDescription", "access", "publishedDate"],
     template: (slug) =>
       [
         "---",
@@ -54,6 +59,7 @@ const COLLECTIONS = {
   posts: {
     label: "Blog",
     basePath: "src/content/posts",
+    requiredFields: ["title", "excerpt", "publishedDate"],
     template: (slug) =>
       [
         "---",
@@ -87,4 +93,35 @@ function isValidSlug(slug) {
   return typeof slug === "string" && slug.length > 0 && slug.length <= 80 && SLUG_RE.test(slug);
 }
 
-module.exports = { COLLECTIONS, collectionKeys, getCollection, isValidSlug };
+// Not a real YAML parser — just enough to catch the failure mode that
+// actually happened (content saved with no frontmatter at all, or missing
+// a field the site's Zod schema requires) *before* it reaches GitHub and
+// breaks the site's build. Pulls out top-level `key:` lines inside the
+// first --- ... --- block; nested/indented keys aren't collected, which is
+// fine since every field these templates use is a single top-level line.
+function extractFrontmatterKeys(markdown) {
+  if (typeof markdown !== "string") return null;
+  const match = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!match) return null;
+  const keys = new Set();
+  for (const line of match[1].split(/\r?\n/)) {
+    const m = line.match(/^([A-Za-z0-9_]+):/);
+    if (m) keys.add(m[1]);
+  }
+  return keys;
+}
+
+// Returns null when valid, or a human-readable error string when not.
+function validateContent(markdown, collection) {
+  const keys = extractFrontmatterKeys(markdown);
+  if (!keys) {
+    return "Sem bloco de frontmatter (---...---) no início do ficheiro.";
+  }
+  const missing = (collection.requiredFields || []).filter((f) => !keys.has(f));
+  if (missing.length > 0) {
+    return `Falta(m) no frontmatter: ${missing.join(", ")}.`;
+  }
+  return null;
+}
+
+module.exports = { COLLECTIONS, collectionKeys, getCollection, isValidSlug, validateContent };
