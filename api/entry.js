@@ -1,6 +1,6 @@
-const { isAuthenticated } = require("../lib/auth");
-const { getFile, putFile, deleteFile } = require("../lib/github");
-const { getCollection, isValidSlug } = require("../lib/collections");
+const { isAuthenticated } = require("./_lib/auth");
+const { getFile, putFile, deleteFile } = require("./_lib/github");
+const { getCollection, isValidSlug } = require("./_lib/collections");
 
 function paths(collectionKey, slug) {
   const { basePath } = getCollection(collectionKey);

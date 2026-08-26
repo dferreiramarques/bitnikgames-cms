@@ -8,23 +8,28 @@ fazer o resto.
 
 Construído a pensar no [bitnikgames.vercel.app](https://bitnikgames.vercel.app),
 mas o único ficheiro que sabe alguma coisa específica desse site é
-[`lib/collections.js`](lib/collections.js) — apontar isto a outro projeto
-Astro com content collections é trocar esse ficheiro (e as env vars
+[`api/_lib/collections.js`](api/_lib/collections.js) — apontar isto a outro
+projeto Astro com content collections é trocar esse ficheiro (e as env vars
 `GITHUB_OWNER`/`GITHUB_REPO`).
 
 ## Como funciona
 
 ```
-public/index.html   → login (utilizador + password)
-public/admin.html    → lista as coleções, edita/cria/apaga entradas
-api/login.js          → valida a password (bcrypt) e assina uma cookie de sessão
-api/session.js         → confirma se a cookie ainda é válida
-api/collections.js      → lista as entradas de cada coleção (via GitHub API)
-api/entry.js              → GET/PUT/DELETE de uma entrada (pt+en em conjunto)
-lib/auth.js                → sessão assinada com HMAC (sem base de dados)
-lib/github.js                → wrapper fino sobre @octokit/rest
-lib/collections.js             → schema das 3 coleções do bitnikgames (games, pnp, posts)
+public/index.html    → login (utilizador + password)
+public/admin.html     → lista as coleções, edita/cria/apaga entradas
+api/login.js           → valida a password (bcrypt) e assina uma cookie de sessão
+api/session.js          → confirma se a cookie ainda é válida
+api/collections.js       → lista as entradas de cada coleção (via GitHub API)
+api/entry.js               → GET/PUT/DELETE de uma entrada (pt+en em conjunto)
+api/_lib/auth.js             → sessão assinada com HMAC (sem base de dados)
+api/_lib/github.js             → chamadas diretas à Contents API do GitHub via fetch()
+api/_lib/collections.js          → schema das 3 coleções do bitnikgames (games, pnp, posts)
 ```
+
+`_lib` fica dentro de `api/` (não `lib/` na raiz) de propósito — os ficheiros
+partilhados só ficam disponíveis de forma fiável dentro do bundle de cada
+função quando estão dentro da árvore que o bundler do Vercel já está a
+analisar; fora de `api/`, o include automático não é garantido.
 
 Cada entrada é sempre editada/criada/apagada como **par pt+en em conjunto**
 — a regra mais importante do bitnikgames (nunca conteúdo só num idioma) fica
@@ -116,7 +121,7 @@ projeto — o deploy automático a partir de `main` fica configurado lá.)
 ## Estender para outro projeto
 
 1. Copia o repositório.
-2. Edita `lib/collections.js` com as coleções/schema do novo projeto
+2. Edita `api/_lib/collections.js` com as coleções/schema do novo projeto
    (`basePath` tem de bater certo com `src/content/config.ts` desse site).
 3. Aponta `GITHUB_OWNER`/`GITHUB_REPO` ao repositório certo.
 4. Gera uma password e segredo de sessão novos — não reutilizes os do

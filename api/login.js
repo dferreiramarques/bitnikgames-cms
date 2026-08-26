@@ -1,5 +1,5 @@
 const bcrypt = require("bcryptjs");
-const { createSessionCookie } = require("../lib/auth");
+const { createSessionCookie } = require("./_lib/auth");
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {

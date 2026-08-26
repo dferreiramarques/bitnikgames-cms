@@ -1,6 +1,6 @@
-const { isAuthenticated } = require("../lib/auth");
-const { listDir, getFile } = require("../lib/github");
-const { collectionKeys, getCollection } = require("../lib/collections");
+const { isAuthenticated } = require("./_lib/auth");
+const { listDir, getFile } = require("./_lib/github");
+const { collectionKeys, getCollection } = require("./_lib/collections");
 
 // Cheap frontmatter title peek — avoids pulling in a YAML parser just to
 // show a readable label in the list view. Falls back to the slug itself.
