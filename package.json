@@ -9,7 +9,6 @@
     "hash-password": "node scripts/hash-password.js"
   },
   "dependencies": {
-    "@octokit/rest": "^21.0.2",
     "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
