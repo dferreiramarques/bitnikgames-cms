@@ -9,6 +9,11 @@ function peekTitle(markdown, fallback) {
   return m ? m[1].trim() : fallback;
 }
 
+function peekFeatured(markdown) {
+  const m = markdown.match(/^featured:\s*(true|false)/m);
+  return m ? m[1] === "true" : false;
+}
+
 module.exports = async (req, res) => {
   if (!isAuthenticated(req)) {
     res.status(401).json({ error: "Sessão expirada, entra novamente." });
@@ -22,7 +27,7 @@ module.exports = async (req, res) => {
   try {
     const result = {};
     for (const key of collectionKeys()) {
-      const { label, basePath } = getCollection(key);
+      const { label, basePath, supportsFeatured } = getCollection(key);
       const ptFiles = await listDir(`${basePath}/pt`);
       const enNames = new Set((await listDir(`${basePath}/en`)).map((f) => f.name));
 
@@ -36,12 +41,13 @@ module.exports = async (req, res) => {
               slug,
               title: pt ? peekTitle(pt.content, slug) : slug,
               hasEn: enNames.has(f.name),
+              featured: pt ? peekFeatured(pt.content) : false,
             };
           })
       );
 
       entries.sort((a, b) => a.slug.localeCompare(b.slug));
-      result[key] = { label, entries };
+      result[key] = { label, entries, supportsFeatured: Boolean(supportsFeatured) };
     }
     res.status(200).json(result);
   } catch (err) {

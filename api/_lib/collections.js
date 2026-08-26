@@ -16,6 +16,10 @@ const COLLECTIONS = {
     // no default — everything else (price, tags, featured) either has a
     // schema default or is genuinely optional, so leaving it out is fine.
     requiredFields: ["title", "shortDescription", "players", "duration", "age", "status", "publishedDate"],
+    // Shows the "Destacar na homepage" checkbox in the editor for this
+    // collection — must match the target schema having a featured:boolean
+    // field with a default, otherwise toggling it does nothing useful.
+    supportsFeatured: true,
     template: (slug) =>
       [
         "---",
@@ -39,6 +43,7 @@ const COLLECTIONS = {
     label: "Print & Play",
     basePath: "src/content/pnp",
     requiredFields: ["title", "shortDescription", "access", "publishedDate"],
+    supportsFeatured: true,
     template: (slug) =>
       [
         "---",
@@ -49,6 +54,7 @@ const COLLECTIONS = {
         "players: { min: 1, max: 4 }",
         "duration: 20",
         "tags: []",
+        "featured: false",
         `publishedDate: ${new Date().toISOString().slice(0, 10)}`,
         "---",
         "",
@@ -60,6 +66,7 @@ const COLLECTIONS = {
     label: "Blog",
     basePath: "src/content/posts",
     requiredFields: ["title", "excerpt", "publishedDate"],
+    supportsFeatured: true,
     template: (slug) =>
       [
         "---",
@@ -67,6 +74,7 @@ const COLLECTIONS = {
         'excerpt: "Excerto a preencher."',
         "readingMinutes: 4",
         "tags: []",
+        "featured: false",
         `publishedDate: ${new Date().toISOString().slice(0, 10)}`,
         "---",
         "",

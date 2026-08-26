@@ -36,6 +36,15 @@
   .entry-row .slug { font-family: var(--font-display); font-weight: 600; flex: 1; }
   .entry-row .slug small { display: block; font-family: var(--font-body); font-weight: 400; color: var(--text-muted); font-size: 0.78rem; }
   .warn-badge { color: var(--color-brick-deep); font-size: 0.75rem; font-weight: 600; }
+  .featured-badge { color: var(--brand-primary); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+
+  .featured-row {
+    display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
+    padding: 0.6rem 0.9rem; background: var(--bg-alt); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); width: fit-content;
+  }
+  .featured-row label { font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; cursor: pointer; }
+  .featured-row input { width: 1.1rem; height: 1.1rem; cursor: pointer; accent-color: var(--brand-primary); }
 
   .editor-panes { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
   @media (max-width: 720px) { .editor-panes { grid-template-columns: 1fr; } }
@@ -89,6 +98,10 @@
         <input id="slug-input" type="text" placeholder="nome-do-jogo">
         <span class="text-muted" style="font-size:0.8rem">letras minúsculas, números e hífens</span>
       </div>
+      <div class="featured-row hidden" id="featured-row">
+        <input type="checkbox" id="featured-checkbox">
+        <label for="featured-checkbox">★ Destacar na homepage</label>
+      </div>
       <div class="editor-panes">
         <div class="pane">
           <label>Português (pt)</label>
@@ -120,6 +133,26 @@ function toast(msg, isErr) {
   t.textContent = msg;
   t.className = isErr ? 'show err' : 'show';
   setTimeout(() => { t.className = ''; }, 3200);
+}
+
+// Not a real YAML parser — same deliberate scope as the server-side
+// validator, just for the one `featured: true|false` line. Keeping this
+// as a tiny read/replace pair (instead of round-tripping through the API)
+// means toggling the checkbox has no extra request, and the value only
+// gets spliced into the raw text right before Guardar sends it.
+function readFeatured(text) {
+  const m = text.match(/^featured:\s*(true|false)/m);
+  return m ? m[1] === 'true' : false;
+}
+function writeFeatured(text, value) {
+  const line = 'featured: ' + value;
+  if (/^featured:\s*(true|false)/m.test(text)) {
+    return text.replace(/^featured:\s*(true|false)/m, line);
+  }
+  // No existing line (older entry from before this field existed) —
+  // insert right after the opening --- so it still lands inside the
+  // frontmatter block instead of the body text.
+  return text.replace(/^---\r?\n/, '---\n' + line + '\n');
 }
 
 async function api(path, opts) {
@@ -177,6 +210,7 @@ function renderEntries() {
     row.className = 'entry-row';
     row.innerHTML =
       '<span class="slug">' + entry.title + '<small>' + entry.slug + '</small></span>' +
+      (entry.featured ? '<span class="featured-badge">★ destacado</span>' : '') +
       (entry.hasEn ? '' : '<span class="warn-badge">falta EN</span>') +
       '<button class="btn btn-ghost btn-sm">Editar</button>';
     row.querySelector('button').onclick = () => openEditor(entry.slug);
@@ -203,6 +237,14 @@ async function openEditor(slug) {
   const data = await api('/api/entry?collection=' + currentCollection + '&slug=' + encodeURIComponent(fetchSlug));
   el('pt-content').value = data.pt;
   el('en-content').value = data.en;
+
+  // Featured is one field, but it lives inside both language files —
+  // the checkbox controls both together rather than editing the raw
+  // frontmatter twice for what's really one decision.
+  const supportsFeatured = Boolean(COLLECTIONS[currentCollection].supportsFeatured);
+  el('featured-row').classList.toggle('hidden', !supportsFeatured);
+  el('featured-checkbox').checked = supportsFeatured && readFeatured(data.pt);
+
   el('list-view').classList.add('hidden');
   el('editor-view').classList.remove('hidden');
 }
@@ -216,11 +258,16 @@ el('save-btn').onclick = async () => {
     toast('Slug inválido — só letras minúsculas, números e hífens.', true);
     return;
   }
-  const pt = el('pt-content').value;
-  const en = el('en-content').value;
+  let pt = el('pt-content').value;
+  let en = el('en-content').value;
   if (!pt.trim() || !en.trim()) {
     toast('Precisa de conteúdo em pt e en.', true);
     return;
+  }
+  if (COLLECTIONS[currentCollection].supportsFeatured) {
+    const featured = el('featured-checkbox').checked;
+    pt = writeFeatured(pt, featured);
+    en = writeFeatured(en, featured);
   }
   el('save-btn').disabled = true;
   el('save-btn').textContent = 'A guardar…';
