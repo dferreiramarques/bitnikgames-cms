@@ -184,6 +184,8 @@ const FIELD_DOCS = {
       { field: 'price', type: 'texto', required: false, desc: 'Ex.: "18€". Só é mostrado com status buy-now ou paid.' },
       { field: 'externalUrl', type: 'URL', required: false, desc: 'Link do botão principal para outra plataforma (Stripe, itch.io…). Obrigatório se status="buy-external". Ver "Links externos / CTA".' },
       { field: 'externalLabel', type: 'texto', required: false, desc: 'Texto do botão quando externalUrl está definido. Sem isto, usa o texto por omissão do status.' },
+      { field: 'video', type: 'URL do YouTube', required: false, desc: 'Trailer do jogo (watch?v=, youtu.be/ ou /shorts/ — qualquer formato). Sem videoEmbed:true, aparece só como link "Ver trailer" a seguir à descrição.' },
+      { field: 'videoEmbed', type: 'true/false', required: false, desc: 'Com video preenchido e isto a true, o player fica embutido a seguir à descrição em vez de aparecer só como link. Por omissão: false.' },
       { field: 'tags', type: 'lista de texto', required: false, desc: 'Ex.: ["blefe", "apostas"]. Por omissão: lista vazia.' },
       { field: 'featured', type: 'true/false', required: false, desc: 'Mostra na homepage. Por omissão: false.' },
       { field: 'order', type: 'número', required: false, desc: 'Ordem manual — normalmente não se edita à mão, arrasta-se ⠿ na lista.' },
