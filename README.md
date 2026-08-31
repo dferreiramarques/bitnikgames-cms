@@ -23,7 +23,7 @@ api/collections.js       → lista as entradas de cada coleção (via GitHub API
 api/entry.js               → GET/PUT/DELETE de uma entrada (pt+en em conjunto)
 api/_lib/auth.js             → sessão assinada com HMAC (sem base de dados)
 api/_lib/github.js             → chamadas diretas à Contents API do GitHub via fetch()
-api/_lib/collections.js          → schema das 3 coleções do bitnikgames (games, pnp, posts)
+api/_lib/collections.js          → schema das 4 coleções do bitnikgames (games, pnp, posts, hero)
 ```
 
 `_lib` fica dentro de `api/` (não `lib/` na raiz) de propósito — os ficheiros

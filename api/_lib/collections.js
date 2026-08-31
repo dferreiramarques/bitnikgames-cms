@@ -91,6 +91,25 @@ const COLLECTIONS = {
         "",
       ].join("\n"),
   },
+  // Coleção "singleton" — só faz sentido ter uma entrada, de slug "home",
+  // com o texto do hero da homepage (título, eyebrow, subtítulo). Sem
+  // featured/order porque não há lista a ordenar.
+  hero: {
+    label: "Hero (Home)",
+    basePath: "src/content/hero",
+    requiredFields: ["title", "eyebrow", "subtitle"],
+    supportsFeatured: false,
+    supportsOrder: false,
+    template: () =>
+      [
+        "---",
+        'title: "Jogos pequenos, ideias grandes."',
+        'eyebrow: "Publisher independente de jogos de tabuleiro"',
+        'subtitle: "Descrição a preencher."',
+        "---",
+        "",
+      ].join("\n"),
+  },
 };
 
 function collectionKeys() {
