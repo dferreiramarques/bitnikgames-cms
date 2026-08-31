@@ -17,6 +17,11 @@ const COLLECTIONS = {
     // featured) either has a schema default or is genuinely optional, so
     // leaving it out is fine.
     requiredFields: ["title", "shortDescription", "status", "publishedDate"],
+    // Fields the target schema types as boolean — checked at save time so a
+    // typo (or a link pasted into the wrong field, like videoEmbed once
+    // getting a YouTube URL instead of true/false) is caught here instead
+    // of reaching GitHub and crashing the site's whole content sync.
+    booleanFields: ["featured", "videoEmbed"],
     // Shows the "Destacar na homepage" checkbox in the editor for this
     // collection — must match the target schema having a featured:boolean
     // field with a default, otherwise toggling it does nothing useful.
@@ -48,6 +53,7 @@ const COLLECTIONS = {
     label: "Print & Play",
     basePath: "src/content/pnp",
     requiredFields: ["title", "shortDescription", "status", "publishedDate"],
+    booleanFields: ["featured"],
     supportsFeatured: true,
     supportsOrder: true,
     template: (slug) =>
@@ -73,6 +79,7 @@ const COLLECTIONS = {
     label: "Blog",
     basePath: "src/content/posts",
     requiredFields: ["title", "excerpt", "publishedDate"],
+    booleanFields: ["featured"],
     supportsFeatured: true,
     supportsOrder: true,
     template: (slug) =>
@@ -147,6 +154,18 @@ function extractFrontmatterKeys(markdown) {
   return keys;
 }
 
+// Raw value of one top-level `key: value` line inside the frontmatter
+// block, trimmed — or null if the key isn't there. Same narrow scope as
+// extractFrontmatterKeys: one named line, not a YAML parser.
+function extractFrontmatterValue(markdown, key) {
+  const match = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!match) return null;
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp("^" + escaped + ":\\s*(.+?)\\s*$", "m");
+  const m = match[1].match(re);
+  return m ? m[1] : null;
+}
+
 // Returns null when valid, or a human-readable error string when not.
 function validateContent(markdown, collection) {
   const keys = extractFrontmatterKeys(markdown);
@@ -156,6 +175,13 @@ function validateContent(markdown, collection) {
   const missing = (collection.requiredFields || []).filter((f) => !keys.has(f));
   if (missing.length > 0) {
     return `Falta(m) no frontmatter: ${missing.join(", ")}.`;
+  }
+  for (const field of collection.booleanFields || []) {
+    if (!keys.has(field)) continue;
+    const raw = extractFrontmatterValue(markdown, field);
+    if (raw !== "true" && raw !== "false") {
+      return `${field} tem de ser true ou false (encontrado: "${raw}").`;
+    }
   }
   return null;
 }
