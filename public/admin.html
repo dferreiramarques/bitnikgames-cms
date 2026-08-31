@@ -75,12 +75,33 @@
   #toast.err { background: var(--color-brick-deep); }
   .hidden { display: none !important; }
   #loading { text-align: center; padding: 3rem 0; color: var(--text-muted); }
+
+  /* --- docs / ajuda --- */
+  #docs-content h2 { font-family: var(--font-display); font-size: 1.3rem; margin: 1.6rem 0 0.6rem; }
+  #docs-content h2:first-child { margin-top: 0; }
+  #docs-content h3 { font-family: var(--font-display); font-size: 1rem; margin: 1.2rem 0 0.4rem; }
+  #docs-content p { color: var(--text); line-height: 1.55; margin: 0 0 0.6rem; }
+  #docs-content code { background: var(--bg-alt); border: 1px solid var(--border); border-radius: 4px; padding: 0.05rem 0.35rem; font-size: 0.85em; }
+  .field-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.88rem; }
+  .field-table th, .field-table td { text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .field-table th { font-family: var(--font-display); color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .field-table td:first-child code { white-space: nowrap; }
+  .field-required { color: var(--brand-primary); font-weight: 700; font-size: 0.75rem; }
+  .field-optional { color: var(--text-muted); font-size: 0.75rem; }
+  .field-ref {
+    background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 0.9rem 1rem; margin-bottom: 1rem;
+  }
+  .field-ref .field-table { margin-bottom: 0; }
 </style>
 </head>
 <body>
   <header class="top">
     <h1>bitnikgames CMS</h1>
-    <button class="btn btn-ghost btn-sm" id="logout-btn">Sair</button>
+    <div style="display:flex;gap:0.5rem">
+      <button class="btn btn-ghost btn-sm" id="help-btn">? Ajuda</button>
+      <button class="btn btn-ghost btn-sm" id="logout-btn">Sair</button>
+    </div>
   </header>
 
   <main>
@@ -106,6 +127,8 @@
         <input type="checkbox" id="featured-checkbox">
         <label for="featured-checkbox">★ Destacar na homepage</label>
       </div>
+      <button class="btn btn-ghost btn-sm" id="field-ref-toggle" style="margin-bottom:0.8rem">📖 Ver campos desta coleção</button>
+      <div id="field-ref" class="field-ref hidden"></div>
       <div class="editor-panes">
         <div class="pane">
           <label>Português (pt)</label>
@@ -120,6 +143,11 @@
         <button class="btn btn-primary" id="save-btn">Guardar</button>
         <button class="btn btn-ghost" id="delete-btn">Eliminar</button>
       </div>
+    </div>
+
+    <div id="docs-view" class="hidden">
+      <button class="btn btn-ghost btn-sm" id="docs-back-btn" style="margin-bottom:1rem">&larr; Voltar</button>
+      <div id="docs-content"></div>
     </div>
   </main>
 
@@ -137,6 +165,137 @@ function toast(msg, isErr) {
   t.textContent = msg;
   t.className = isErr ? 'show err' : 'show';
   setTimeout(() => { t.className = ''; }, 3200);
+}
+
+// Referência de campos — puramente informativa, não deriva do schema real
+// (api/_lib/collections.js só sabe quais campos são *obrigatórios*, não o
+// que cada um significa). Se o schema em bitnikgames/src/content/config.ts
+// mudar, isto tem de ser atualizado à mão.
+const FIELD_DOCS = {
+  games: {
+    label: 'Catálogo (jogos)',
+    fields: [
+      { field: 'title', type: 'texto', required: true, desc: 'Nome do jogo, tal como aparece no site.' },
+      { field: 'shortDescription', type: 'texto', required: true, desc: 'Frase curta no cartão do catálogo e no topo da página do jogo.' },
+      { field: 'players', type: '{ min, max }', required: false, desc: 'Nº de jogadores. Ex.: <code>{ min: 2, max: 4 }</code>.' },
+      { field: 'duration', type: 'número (minutos)', required: false, desc: '' },
+      { field: 'age', type: 'número', required: false, desc: 'Idade mínima recomendada.' },
+      { field: 'status', type: 'ver "Status e badges"', required: true, desc: 'buy-now, buy-external, coming-soon, free, paid ou pwyw.' },
+      { field: 'price', type: 'texto', required: false, desc: 'Ex.: "18€". Só é mostrado com status buy-now ou paid.' },
+      { field: 'externalUrl', type: 'URL', required: false, desc: 'Link do botão principal para outra plataforma (Stripe, itch.io…). Obrigatório se status="buy-external". Ver "Links externos / CTA".' },
+      { field: 'externalLabel', type: 'texto', required: false, desc: 'Texto do botão quando externalUrl está definido. Sem isto, usa o texto por omissão do status.' },
+      { field: 'tags', type: 'lista de texto', required: false, desc: 'Ex.: ["blefe", "apostas"]. Por omissão: lista vazia.' },
+      { field: 'featured', type: 'true/false', required: false, desc: 'Mostra na homepage. Por omissão: false.' },
+      { field: 'order', type: 'número', required: false, desc: 'Ordem manual — normalmente não se edita à mão, arrasta-se ⠿ na lista.' },
+      { field: 'publishedDate', type: 'data AAAA-MM-DD', required: true, desc: '' },
+    ],
+  },
+  pnp: {
+    label: 'Print & Play',
+    fields: [
+      { field: 'title', type: 'texto', required: true, desc: 'Nome do PnP.' },
+      { field: 'shortDescription', type: 'texto', required: true, desc: 'Frase curta no cartão e no topo da página.' },
+      { field: 'players', type: '{ min, max }', required: false, desc: '' },
+      { field: 'duration', type: 'número (minutos)', required: false, desc: '' },
+      { field: 'age', type: 'número', required: false, desc: 'Idade mínima recomendada.' },
+      { field: 'status', type: 'ver "Status e badges"', required: true, desc: 'Normalmente free, paid ou pwyw — mas nada impede coming-soon, etc.' },
+      { field: 'price', type: 'texto', required: false, desc: 'Ex.: "2€". Mostrado com status paid.' },
+      { field: 'fileUrl', type: 'URL', required: false, desc: 'Link direto do PDF. Ver "Ficheiros de Print & Play". Por omissão: "#" (botão desativado).' },
+      { field: 'externalUrl', type: 'URL', required: false, desc: 'Link do botão principal para o itch.io ou outra plataforma, em vez de download direto. Tem prioridade sobre fileUrl. Ver "Links externos / CTA".' },
+      { field: 'externalLabel', type: 'texto', required: false, desc: 'Texto do botão quando externalUrl está definido.' },
+      { field: 'tags', type: 'lista de texto', required: false, desc: '' },
+      { field: 'featured', type: 'true/false', required: false, desc: 'Mostra na homepage.' },
+      { field: 'order', type: 'número', required: false, desc: 'Arrasta ⠿ na lista para mudar.' },
+      { field: 'publishedDate', type: 'data AAAA-MM-DD', required: true, desc: '' },
+    ],
+  },
+  posts: {
+    label: 'Blog',
+    fields: [
+      { field: 'title', type: 'texto', required: true, desc: '' },
+      { field: 'excerpt', type: 'texto', required: true, desc: 'Resumo curto mostrado na lista do blog.' },
+      { field: 'readingMinutes', type: 'número', required: false, desc: 'Por omissão: 4.' },
+      { field: 'tags', type: 'lista de texto', required: false, desc: '' },
+      { field: 'featured', type: 'true/false', required: false, desc: 'Mostra na homepage.' },
+      { field: 'order', type: 'número', required: false, desc: 'Arrasta ⠿ na lista para mudar.' },
+      { field: 'publishedDate', type: 'data AAAA-MM-DD', required: true, desc: '' },
+    ],
+  },
+  hero: {
+    label: 'Hero (Home)',
+    fields: [
+      { field: 'title', type: 'texto', required: true, desc: 'O título grande (H1) do hero da homepage.' },
+      { field: 'eyebrow', type: 'texto', required: true, desc: 'O texto pequeno por cima do título.' },
+      { field: 'subtitle', type: 'texto', required: true, desc: 'O parágrafo do hero.' },
+    ],
+  },
+};
+
+const STATUS_DOCS = [
+  { field: 'buy-now', type: 'badge "Comprar"', required: false, desc: 'Jogo físico à venda. Com <code>externalUrl</code> preenchido, o botão aponta para lá (Stripe, itch.io…); sem ele, fica um placeholder desativado.' },
+  { field: 'buy-external', type: 'badge "Disponível externamente"', required: false, desc: 'Não se vende no site — aponta sempre para <code>externalUrl</code> (obrigatório com este status).' },
+  { field: 'coming-soon', type: 'badge "Brevemente"', required: false, desc: 'Sem botão clicável.' },
+  { field: 'free', type: 'badge "Grátis"', required: false, desc: 'Normalmente em Print & Play.' },
+  { field: 'paid', type: 'badge "Pago"', required: false, desc: 'Normalmente em Print & Play — mostra o <code>price</code>.' },
+  { field: 'pwyw', type: 'badge "Paga o que quiseres"', required: false, desc: 'Normalmente em Print & Play.' },
+];
+
+const GENERAL_DOCS = [
+  {
+    title: 'pt + en sempre em par',
+    html:
+      '<p>Cada jogo, PnP ou post existe em dois ficheiros com o mesmo slug — um em pt, outro em en. Este editor obriga a preencheres os dois de cada vez que gravas. Nunca deixes um em branco "para resolver depois": isso parte o seletor de idioma nessa página no site. Se só tens o texto num idioma, escreve os dois na mesma (mesmo que um fique por traduzir) e ajusta depois.</p>',
+  },
+  {
+    title: 'Imagens',
+    html:
+      '<p>Este CMS não faz upload de imagens. A capa de um jogo ou PnP vem de <code>public/cards/&lt;slug&gt;.png</code> no repositório do site — se esse ficheiro não existir, o site mostra um gradiente com o nome em vez de arte. Para adicionar uma capa, é preciso um commit direto ao repositório <code>bitnikgames</code> (arrastar o ficheiro no GitHub, por exemplo).</p>',
+  },
+  {
+    title: 'Ficheiros de Print & Play',
+    html:
+      '<p>Os PDFs não vivem no site nem neste CMS — publicam-se como asset de uma release no GitHub (release <code>pnp-files</code> do repositório bitnikgames). Depois de fazeres upload do PDF lá, copia o link do asset para o campo <code>fileUrl</code> desta entrada. Enquanto <code>fileUrl</code> for "#", o botão "Descarregar" no site fica desativado.</p>',
+  },
+  { title: 'Status e badges', html: '<p>O campo <code>status</code> é o mesmo em jogos e em Print & Play (de propósito, para poderes copiar frontmatter de um para o outro sem editar nomes de campos) — cada coleção normalmente só usa o subconjunto que faz sentido:</p>' + fieldTable(STATUS_DOCS, true) },
+  {
+    title: 'Links externos / CTA',
+    html:
+      '<p>Preenchendo <code>externalUrl</code> (e opcionalmente <code>externalLabel</code>) em qualquer jogo ou PnP, o botão principal da página passa a apontar diretamente para lá — uma página no itch.io, um Payment Link do Stripe, o Gumroad, ou qualquer outra plataforma de venda. Sem checkout próprio no site, isto é a forma de vender já hoje: cria o produto na plataforma que preferires e cola o link aqui.</p>',
+  },
+  {
+    title: 'Ordem e destaque',
+    html:
+      '<p><code>featured: true</code> marca a entrada para aparecer na homepage; a ordem entre destacados segue <code>order</code>, que se muda arrastando as linhas (⠿) na lista deste CMS — não precisas de editar esse número à mão.</p>',
+  },
+];
+
+function fieldTable(rows, hideRequiredCol) {
+  return '<table class="field-table"><thead><tr><th>Campo</th><th>' + (hideRequiredCol ? 'Badge' : 'Tipo') + '</th>' +
+    (hideRequiredCol ? '' : '<th></th>') +
+    '<th>Descrição</th></tr></thead><tbody>' +
+    rows.map((r) => (
+      '<tr><td><code>' + r.field + '</code></td><td>' + r.type + '</td>' +
+      (hideRequiredCol ? '' : '<td>' + (r.required ? '<span class="field-required">obrigatório</span>' : '<span class="field-optional">opcional</span>') + '</td>') +
+      '<td>' + r.desc + '</td></tr>'
+    )).join('') +
+    '</tbody></table>';
+}
+
+function renderDocs() {
+  let html = '<h2>Guia rápido</h2>';
+  GENERAL_DOCS.forEach((s) => { html += '<h3>' + s.title + '</h3>' + s.html; });
+  html += '<h2>Campos por coleção</h2>';
+  Object.values(FIELD_DOCS).forEach((c) => {
+    html += '<h3>' + c.label + '</h3>' + fieldTable(c.fields);
+  });
+  el('docs-content').innerHTML = html;
+}
+
+function showDocs() {
+  renderDocs();
+  el('list-view').classList.add('hidden');
+  el('editor-view').classList.add('hidden');
+  el('docs-view').classList.remove('hidden');
 }
 
 // Not a real YAML parser — same deliberate scope as the server-side
@@ -313,12 +472,32 @@ async function openEditor(slug) {
   el('featured-row').classList.toggle('hidden', !supportsFeatured);
   el('featured-checkbox').checked = supportsFeatured && readFeatured(data.pt);
 
+  // Referência de campos fecha-se sempre ao (re)abrir o editor — para não
+  // ficar a ocupar espaço se quem edita já sabe o que está a fazer.
+  const ref = FIELD_DOCS[currentCollection];
+  el('field-ref').innerHTML = ref ? fieldTable(ref.fields) : '';
+  el('field-ref').classList.add('hidden');
+  el('field-ref-toggle').textContent = '📖 Ver campos desta coleção';
+  el('field-ref-toggle').classList.toggle('hidden', !ref);
+
   el('list-view').classList.add('hidden');
   el('editor-view').classList.remove('hidden');
 }
 
 el('new-btn').onclick = () => openEditor(null);
 el('back-btn').onclick = () => renderEntries();
+
+el('field-ref-toggle').onclick = () => {
+  const nowHidden = el('field-ref').classList.toggle('hidden');
+  el('field-ref-toggle').textContent = nowHidden ? '📖 Ver campos desta coleção' : '📖 Esconder campos desta coleção';
+};
+
+el('help-btn').onclick = showDocs;
+el('docs-back-btn').onclick = () => {
+  el('docs-view').classList.add('hidden');
+  if (COLLECTIONS && currentCollection) renderEntries();
+  else el('list-view').classList.remove('hidden');
+};
 
 el('save-btn').onclick = async () => {
   const slug = el('slug-input').value.trim();
