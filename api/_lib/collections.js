@@ -13,9 +13,10 @@ const COLLECTIONS = {
     label: "Catálogo",
     basePath: "src/content/games",
     // Fields the target Zod schema (src/content/config.ts) requires with
-    // no default — everything else (price, tags, featured) either has a
-    // schema default or is genuinely optional, so leaving it out is fine.
-    requiredFields: ["title", "shortDescription", "players", "duration", "age", "status", "publishedDate"],
+    // no default — everything else (players, duration, age, price, tags,
+    // featured) either has a schema default or is genuinely optional, so
+    // leaving it out is fine.
+    requiredFields: ["title", "shortDescription", "status", "publishedDate"],
     // Shows the "Destacar na homepage" checkbox in the editor for this
     // collection — must match the target schema having a featured:boolean
     // field with a default, otherwise toggling it does nothing useful.
@@ -46,7 +47,7 @@ const COLLECTIONS = {
   pnp: {
     label: "Print & Play",
     basePath: "src/content/pnp",
-    requiredFields: ["title", "shortDescription", "access", "publishedDate"],
+    requiredFields: ["title", "shortDescription", "status", "publishedDate"],
     supportsFeatured: true,
     supportsOrder: true,
     template: (slug) =>
@@ -54,7 +55,7 @@ const COLLECTIONS = {
         "---",
         `title: "${slug}"`,
         'shortDescription: "Descrição a preencher."',
-        'access: "free"',
+        'status: "free"',
         'fileUrl: "#"',
         "players: { min: 1, max: 4 }",
         "duration: 20",
