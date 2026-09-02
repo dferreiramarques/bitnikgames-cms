@@ -183,7 +183,7 @@ const FIELD_DOCS = {
       { field: 'status', type: 'ver "Status e badges"', required: true, desc: 'buy-now, buy-external, coming-soon, free, paid ou pwyw.' },
       { field: 'price', type: 'texto', required: false, desc: 'Ex.: "18€". Só é mostrado com status buy-now ou paid.' },
       { field: 'externalUrl', type: 'URL', required: false, desc: 'Link do botão principal para outra plataforma (Stripe, itch.io…). Obrigatório se status="buy-external". Ver "Links externos / CTA".' },
-      { field: 'externalLabel', type: 'texto', required: false, desc: 'Texto do botão quando externalUrl está definido. Sem isto, usa o texto por omissão do status.' },
+      { field: 'ctaLabel', type: 'texto', required: false, desc: 'Texto do botão principal, seja qual for o estado (link externo, "Comprar", placeholder desativado, "Brevemente"…). Sem isto, usa o texto por omissão de cada estado. Ver "Links externos / CTA".' },
       { field: 'video', type: 'URL do YouTube', required: false, desc: 'Trailer do jogo (watch?v=, youtu.be/ ou /shorts/ — qualquer formato). Sem videoEmbed:true, aparece só como link "Ver trailer" a seguir à descrição.' },
       { field: 'videoEmbed', type: 'true/false', required: false, desc: 'Com video preenchido e isto a true, o player fica embutido a seguir à descrição em vez de aparecer só como link. Por omissão: false.' },
       { field: 'tags', type: 'lista de texto', required: false, desc: 'Ex.: ["blefe", "apostas"]. Por omissão: lista vazia.' },
@@ -204,7 +204,7 @@ const FIELD_DOCS = {
       { field: 'price', type: 'texto', required: false, desc: 'Ex.: "2€". Mostrado com status paid.' },
       { field: 'fileUrl', type: 'URL', required: false, desc: 'Link direto do PDF. Ver "Ficheiros de Print & Play". Por omissão: "#" (botão desativado).' },
       { field: 'externalUrl', type: 'URL', required: false, desc: 'Link do botão principal para o itch.io ou outra plataforma, em vez de download direto. Tem prioridade sobre fileUrl. Ver "Links externos / CTA".' },
-      { field: 'externalLabel', type: 'texto', required: false, desc: 'Texto do botão quando externalUrl está definido.' },
+      { field: 'ctaLabel', type: 'texto', required: false, desc: 'Texto do botão principal, seja qual for o estado (link externo, "Descarregar", placeholder desativado…). Sem isto, usa o texto por omissão de cada estado. Ver "Links externos / CTA".' },
       { field: 'tags', type: 'lista de texto', required: false, desc: '' },
       { field: 'featured', type: 'true/false', required: false, desc: 'Mostra na homepage.' },
       { field: 'order', type: 'número', required: false, desc: 'Arrasta ⠿ na lista para mudar.' },
@@ -262,7 +262,8 @@ const GENERAL_DOCS = [
   {
     title: 'Links externos / CTA',
     html:
-      '<p>Preenchendo <code>externalUrl</code> (e opcionalmente <code>externalLabel</code>) em qualquer jogo ou PnP, o botão principal da página passa a apontar diretamente para lá — uma página no itch.io, um Payment Link do Stripe, o Gumroad, ou qualquer outra plataforma de venda. Sem checkout próprio no site, isto é a forma de vender já hoje: cria o produto na plataforma que preferires e cola o link aqui.</p>',
+      '<p>Preenchendo <code>externalUrl</code> em qualquer jogo ou PnP, o botão principal da página passa a apontar diretamente para lá — uma página no itch.io, um Payment Link do Stripe, o Gumroad, ou qualquer outra plataforma de venda. Sem checkout próprio no site, isto é a forma de vender já hoje: cria o produto na plataforma que preferires e cola o link aqui.</p>' +
+      '<p>Independentemente de teres ou não <code>externalUrl</code>, o campo <code>ctaLabel</code> muda o texto do botão principal — funciona no link externo, no "Comprar"/"Descarregar" normal, e até nos placeholders desativados ("Brevemente", checkout por vir). Deixa em branco para usar sempre o texto por omissão.</p>',
   },
   {
     title: 'Ordem e destaque',
