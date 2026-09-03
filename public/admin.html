@@ -43,8 +43,10 @@
   .drag-handle { color: var(--text-muted); font-size: 1.1rem; line-height: 1; cursor: grab; flex-shrink: 0; }
   .order-hint { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem; }
 
+  .toggle-rows { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1rem; }
+
   .featured-row {
-    display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
     padding: 0.6rem 0.9rem; background: var(--bg-alt); border: 1px solid var(--border);
     border-radius: var(--radius-sm); width: fit-content;
   }
@@ -52,7 +54,7 @@
   .featured-row input { width: 1.1rem; height: 1.1rem; cursor: pointer; accent-color: var(--brand-primary); }
 
   .draft-row {
-    display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
     padding: 0.6rem 0.9rem; background: var(--bg-alt); border: 1px solid var(--border);
     border-radius: var(--radius-sm); width: fit-content;
   }
@@ -132,13 +134,15 @@
         <input id="slug-input" type="text" placeholder="nome-do-jogo">
         <span class="text-muted" style="font-size:0.8rem">letras minúsculas, números e hífens</span>
       </div>
-      <div class="featured-row hidden" id="featured-row">
-        <input type="checkbox" id="featured-checkbox">
-        <label for="featured-checkbox">★ Destacar na homepage</label>
-      </div>
-      <div class="draft-row hidden" id="draft-row">
-        <input type="checkbox" id="draft-checkbox">
-        <label for="draft-checkbox">📝 Rascunho (não publicar no site)</label>
+      <div class="toggle-rows">
+        <div class="featured-row hidden" id="featured-row">
+          <input type="checkbox" id="featured-checkbox">
+          <label for="featured-checkbox">★ Destacar na homepage</label>
+        </div>
+        <div class="draft-row hidden" id="draft-row">
+          <input type="checkbox" id="draft-checkbox">
+          <label for="draft-checkbox">📝 Rascunho (não publicar no site)</label>
+        </div>
       </div>
       <button class="btn btn-ghost btn-sm" id="field-ref-toggle" style="margin-bottom:0.8rem">📖 Ver campos desta coleção</button>
       <div id="field-ref" class="field-ref hidden"></div>
