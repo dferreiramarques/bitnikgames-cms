@@ -117,6 +117,30 @@ const COLLECTIONS = {
         "",
       ].join("\n"),
   },
+  // Coleção "singleton" — entrada única de slug "home", com a lista de
+  // links de "Segue-nos" do footer. Sem featured/order, mesma razão que
+  // "hero": não há lista a ordenar. Sem requiredFields porque o schema alvo
+  // (src/content/config.ts) dá default([]) a "links" — uma lista vazia é
+  // válida, só menos útil.
+  footer: {
+    label: "Footer (Segue-nos)",
+    basePath: "src/content/footer",
+    supportsFeatured: false,
+    supportsOrder: false,
+    template: () =>
+      [
+        "---",
+        "links:",
+        '  - label: "Instagram"',
+        '    url: "https://instagram.com"',
+        '  - label: "BoardGameGeek"',
+        '    url: "https://boardgamegeek.com"',
+        '  - label: "itch.io"',
+        '    url: "https://itch.io"',
+        "---",
+        "",
+      ].join("\n"),
+  },
 };
 
 function collectionKeys() {

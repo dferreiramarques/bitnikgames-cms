@@ -231,6 +231,12 @@ const FIELD_DOCS = {
       { field: 'subtitle', type: 'texto', required: true, desc: 'O parágrafo do hero.' },
     ],
   },
+  footer: {
+    label: 'Footer (Segue-nos)',
+    fields: [
+      { field: 'links', type: 'lista de { label, url }', required: false, desc: 'Os links da coluna "Segue-nos" no footer do site, por esta ordem. Ex.: <code>- label: "Instagram"<br>&nbsp;&nbsp;url: "https://instagram.com/bitnikgames"</code>. Por omissão: lista vazia (a coluna fica sem links).' },
+    ],
+  },
 };
 
 const STATUS_DOCS = [
