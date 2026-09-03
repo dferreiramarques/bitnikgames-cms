@@ -37,6 +37,7 @@
   .entry-row .slug small { display: block; font-family: var(--font-body); font-weight: 400; color: var(--text-muted); font-size: 0.78rem; }
   .warn-badge { color: var(--color-brick-deep); font-size: 0.75rem; font-weight: 600; }
   .featured-badge { color: var(--brand-primary); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+  .draft-badge { color: var(--text-muted); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
   .entry-row[draggable="true"] { cursor: grab; }
   .entry-row.dragging { opacity: 0.4; }
   .drag-handle { color: var(--text-muted); font-size: 1.1rem; line-height: 1; cursor: grab; flex-shrink: 0; }
@@ -49,6 +50,14 @@
   }
   .featured-row label { font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; cursor: pointer; }
   .featured-row input { width: 1.1rem; height: 1.1rem; cursor: pointer; accent-color: var(--brand-primary); }
+
+  .draft-row {
+    display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
+    padding: 0.6rem 0.9rem; background: var(--bg-alt); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); width: fit-content;
+  }
+  .draft-row label { font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; cursor: pointer; }
+  .draft-row input { width: 1.1rem; height: 1.1rem; cursor: pointer; accent-color: var(--text-muted); }
 
   .editor-panes { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
   @media (max-width: 720px) { .editor-panes { grid-template-columns: 1fr; } }
@@ -127,6 +136,10 @@
         <input type="checkbox" id="featured-checkbox">
         <label for="featured-checkbox">★ Destacar na homepage</label>
       </div>
+      <div class="draft-row hidden" id="draft-row">
+        <input type="checkbox" id="draft-checkbox">
+        <label for="draft-checkbox">📝 Rascunho (não publicar no site)</label>
+      </div>
       <button class="btn btn-ghost btn-sm" id="field-ref-toggle" style="margin-bottom:0.8rem">📖 Ver campos desta coleção</button>
       <div id="field-ref" class="field-ref hidden"></div>
       <div class="editor-panes">
@@ -190,6 +203,7 @@ const FIELD_DOCS = {
       { field: 'featured', type: 'true/false', required: false, desc: 'Mostra na homepage. Por omissão: false.' },
       { field: 'order', type: 'número', required: false, desc: 'Ordem manual — normalmente não se edita à mão, arrasta-se ⠿ na lista.' },
       { field: 'publishedDate', type: 'data AAAA-MM-DD', required: true, desc: '' },
+      { field: 'draft', type: 'true/false', required: false, desc: 'Com true, a entrada fica só guardada aqui — sem página nem link no site. Por omissão: false.' },
     ],
   },
   pnp: {
@@ -209,6 +223,7 @@ const FIELD_DOCS = {
       { field: 'featured', type: 'true/false', required: false, desc: 'Mostra na homepage.' },
       { field: 'order', type: 'número', required: false, desc: 'Arrasta ⠿ na lista para mudar.' },
       { field: 'publishedDate', type: 'data AAAA-MM-DD', required: true, desc: '' },
+      { field: 'draft', type: 'true/false', required: false, desc: 'Com true, a entrada fica só guardada aqui — sem página nem link no site. Por omissão: false.' },
     ],
   },
   posts: {
@@ -221,6 +236,7 @@ const FIELD_DOCS = {
       { field: 'featured', type: 'true/false', required: false, desc: 'Mostra na homepage.' },
       { field: 'order', type: 'número', required: false, desc: 'Arrasta ⠿ na lista para mudar.' },
       { field: 'publishedDate', type: 'data AAAA-MM-DD', required: true, desc: '' },
+      { field: 'draft', type: 'true/false', required: false, desc: 'Com true, a entrada fica só guardada aqui — sem página nem link no site. Por omissão: false.' },
     ],
   },
   hero: {
@@ -327,6 +343,21 @@ function writeFeatured(text, value) {
   return text.replace(/^---\r?\n/, '---\n' + line + '\n');
 }
 
+// Same narrow read/replace approach as featured, for the "Rascunho"
+// checkbox — draft:true keeps an entry saved here but out of every
+// listing/detail page on the site (see getPublished() in the site repo).
+function readDraft(text) {
+  const m = text.match(/^draft:\s*(true|false)/m);
+  return m ? m[1] === 'true' : false;
+}
+function writeDraft(text, value) {
+  const line = 'draft: ' + value;
+  if (/^draft:\s*(true|false)/m.test(text)) {
+    return text.replace(/^draft:\s*(true|false)/m, line);
+  }
+  return text.replace(/^---\r?\n/, '---\n' + line + '\n');
+}
+
 async function api(path, opts) {
   const res = await fetch(path, {
     headers: { 'Content-Type': 'application/json' },
@@ -396,6 +427,7 @@ function renderEntries() {
       (c.supportsOrder ? '<span class="drag-handle">⠿</span>' : '') +
       '<span class="slug">' + entry.title + '<small>' + entry.slug + '</small></span>' +
       (entry.featured ? '<span class="featured-badge">★ destacado</span>' : '') +
+      (entry.draft ? '<span class="draft-badge">📝 rascunho</span>' : '') +
       (entry.hasEn ? '' : '<span class="warn-badge">falta EN</span>') +
       '<button class="btn btn-ghost btn-sm">Editar</button>';
     row.querySelector('button').onclick = () => openEditor(entry.slug);
@@ -481,6 +513,10 @@ async function openEditor(slug) {
   el('featured-row').classList.toggle('hidden', !supportsFeatured);
   el('featured-checkbox').checked = supportsFeatured && readFeatured(data.pt);
 
+  const supportsDraft = Boolean(COLLECTIONS[currentCollection].supportsDraft);
+  el('draft-row').classList.toggle('hidden', !supportsDraft);
+  el('draft-checkbox').checked = supportsDraft && readDraft(data.pt);
+
   // Referência de campos fecha-se sempre ao (re)abrir o editor — para não
   // ficar a ocupar espaço se quem edita já sabe o que está a fazer.
   const ref = FIELD_DOCS[currentCollection];
@@ -524,6 +560,11 @@ el('save-btn').onclick = async () => {
     const featured = el('featured-checkbox').checked;
     pt = writeFeatured(pt, featured);
     en = writeFeatured(en, featured);
+  }
+  if (COLLECTIONS[currentCollection].supportsDraft) {
+    const draft = el('draft-checkbox').checked;
+    pt = writeDraft(pt, draft);
+    en = writeDraft(en, draft);
   }
   el('save-btn').disabled = true;
   el('save-btn').textContent = 'A guardar…';

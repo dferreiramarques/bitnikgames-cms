@@ -14,6 +14,11 @@ function peekFeatured(markdown) {
   return m ? m[1] === "true" : false;
 }
 
+function peekDraft(markdown) {
+  const m = markdown.match(/^draft:\s*(true|false)/m);
+  return m ? m[1] === "true" : false;
+}
+
 module.exports = async (req, res) => {
   if (!isAuthenticated(req)) {
     res.status(401).json({ error: "Sessão expirada, entra novamente." });
@@ -27,7 +32,7 @@ module.exports = async (req, res) => {
   try {
     const result = {};
     for (const key of collectionKeys()) {
-      const { label, basePath, supportsFeatured, supportsOrder } = getCollection(key);
+      const { label, basePath, supportsFeatured, supportsOrder, supportsDraft } = getCollection(key);
       const ptFiles = await listDir(`${basePath}/pt`);
       const enNames = new Set((await listDir(`${basePath}/en`)).map((f) => f.name));
 
@@ -42,6 +47,7 @@ module.exports = async (req, res) => {
               title: pt ? peekTitle(pt.content, slug) : slug,
               hasEn: enNames.has(f.name),
               featured: pt ? peekFeatured(pt.content) : false,
+              draft: pt ? peekDraft(pt.content) : false,
               order: pt ? getOrder(pt.content) : 0,
             };
           })
@@ -52,7 +58,13 @@ module.exports = async (req, res) => {
       // but the list here doesn't have that loaded — slug is good enough
       // to keep the list from jumping around between reloads).
       entries.sort((a, b) => a.order - b.order || a.slug.localeCompare(b.slug));
-      result[key] = { label, entries, supportsFeatured: Boolean(supportsFeatured), supportsOrder: Boolean(supportsOrder) };
+      result[key] = {
+        label,
+        entries,
+        supportsFeatured: Boolean(supportsFeatured),
+        supportsOrder: Boolean(supportsOrder),
+        supportsDraft: Boolean(supportsDraft),
+      };
     }
     res.status(200).json(result);
   } catch (err) {

@@ -21,7 +21,7 @@ const COLLECTIONS = {
     // typo (or a link pasted into the wrong field, like videoEmbed once
     // getting a YouTube URL instead of true/false) is caught here instead
     // of reaching GitHub and crashing the site's whole content sync.
-    booleanFields: ["featured", "videoEmbed"],
+    booleanFields: ["featured", "videoEmbed", "draft"],
     // Shows the "Destacar na homepage" checkbox in the editor for this
     // collection — must match the target schema having a featured:boolean
     // field with a default, otherwise toggling it does nothing useful.
@@ -29,6 +29,11 @@ const COLLECTIONS = {
     // Allows the list view's drag-and-drop reordering — must match the
     // target schema having an order:number field with a default.
     supportsOrder: true,
+    // Shows the "Rascunho" checkbox — must match the target schema having a
+    // draft:boolean field with a default. Draft entries stay saved and
+    // editable here but never get a public URL on the site (see
+    // getPublished() in the site repo).
+    supportsDraft: true,
     template: (slug) =>
       [
         "---",
@@ -43,6 +48,7 @@ const COLLECTIONS = {
         "featured: false",
         "order: 0",
         `publishedDate: ${new Date().toISOString().slice(0, 10)}`,
+        "draft: true",
         "---",
         "",
         "Descrição completa a chegar em breve.",
@@ -53,9 +59,10 @@ const COLLECTIONS = {
     label: "Print & Play",
     basePath: "src/content/pnp",
     requiredFields: ["title", "shortDescription", "status", "publishedDate"],
-    booleanFields: ["featured"],
+    booleanFields: ["featured", "draft"],
     supportsFeatured: true,
     supportsOrder: true,
+    supportsDraft: true,
     template: (slug) =>
       [
         "---",
@@ -69,6 +76,7 @@ const COLLECTIONS = {
         "featured: false",
         "order: 0",
         `publishedDate: ${new Date().toISOString().slice(0, 10)}`,
+        "draft: true",
         "---",
         "",
         "Descrição completa a chegar em breve.",
@@ -79,9 +87,10 @@ const COLLECTIONS = {
     label: "Blog",
     basePath: "src/content/posts",
     requiredFields: ["title", "excerpt", "publishedDate"],
-    booleanFields: ["featured"],
+    booleanFields: ["featured", "draft"],
     supportsFeatured: true,
     supportsOrder: true,
+    supportsDraft: true,
     template: (slug) =>
       [
         "---",
@@ -92,6 +101,7 @@ const COLLECTIONS = {
         "featured: false",
         "order: 0",
         `publishedDate: ${new Date().toISOString().slice(0, 10)}`,
+        "draft: true",
         "---",
         "",
         "Texto do post a chegar em breve.",
