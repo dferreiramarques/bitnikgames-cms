@@ -287,7 +287,8 @@ const GENERAL_DOCS = [
   {
     title: 'Imagens',
     html:
-      '<p>Este CMS não faz upload de imagens. A capa de um jogo ou PnP vem de <code>public/cards/&lt;slug&gt;.png</code> no repositório do site — se esse ficheiro não existir, o site mostra um gradiente com o nome em vez de arte. Para adicionar uma capa, é preciso um commit direto ao repositório <code>bitnikgames</code> (arrastar o ficheiro no GitHub, por exemplo).</p>',
+      '<p>Este CMS não faz upload de imagens. A capa de um jogo, PnP ou post vem de <code>public/cards/&lt;slug&gt;.png</code> no repositório do site — se esse ficheiro não existir, o site mostra um gradiente com o título em vez de arte. Para adicionar uma capa, é preciso um commit direto ao repositório <code>bitnikgames</code> (arrastar o ficheiro no GitHub, por exemplo).</p>' +
+      '<p>Para imagens dentro do texto (a seguir ao <code>---</code> final do frontmatter, tanto em posts como em jogos/PnP), usa markdown normal — não precisas de nenhum código especial: <code>![texto alternativo](https://dominio.com/imagem.jpg)</code>. Funciona com qualquer URL de imagem já publicada noutro sítio (não há upload aqui).</p>',
   },
   {
     title: 'Ficheiros de Print & Play',
