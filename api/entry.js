@@ -67,19 +67,23 @@ module.exports = async (req, res) => {
       }
       const [ptExisting, enExisting] = await Promise.all([getFile(p.pt), getFile(p.en)]);
       const message = `content: ${ptExisting || enExisting ? "update" : "add"} ${collectionKey}/${slug} (via CMS)`;
-      // Sequential, not atomic — see README "Known limitation" note.
+      // Sequential, not atomic — see README "Known limitation" note. `sha`
+      // in the response is the *last* commit made here (en, written last) —
+      // the tip of the branch once this request finishes, which is what
+      // /api/deploy-status polls Vercel for.
       await putFile(p.pt, ptContent, message, ptExisting?.sha);
-      await putFile(p.en, enContent, message, enExisting?.sha);
-      res.status(200).json({ ok: true });
+      const sha = await putFile(p.en, enContent, message, enExisting?.sha);
+      res.status(200).json({ ok: true, sha });
       return;
     }
 
     if (req.method === "DELETE") {
       const [pt, en] = await Promise.all([getFile(p.pt), getFile(p.en)]);
       const message = `content: remove ${collectionKey}/${slug} (via CMS)`;
-      if (pt) await deleteFile(p.pt, message, pt.sha);
-      if (en) await deleteFile(p.en, message, en.sha);
-      res.status(200).json({ ok: true });
+      let sha;
+      if (pt) sha = await deleteFile(p.pt, message, pt.sha);
+      if (en) sha = await deleteFile(p.en, message, en.sha);
+      res.status(200).json({ ok: true, sha });
       return;
     }
 

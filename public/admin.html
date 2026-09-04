@@ -28,12 +28,12 @@
   .tab-btn.active { background: var(--brand-primary); border-color: var(--brand-primary); color: var(--color-white); }
 
   .list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; }
-  .cooldown-banner {
+  .deploy-banner {
     display: flex; align-items: center; gap: 0.5rem;
     background: var(--bg-alt); border: 1px solid var(--border); border-radius: var(--radius-sm);
     padding: 0.6rem 0.9rem; margin-bottom: 0.8rem; font-size: 0.85rem; color: var(--text-muted);
   }
-  .cooldown-lock { pointer-events: none; opacity: 0.55; }
+  .deploy-lock { pointer-events: none; opacity: 0.55; }
   .entry-row {
     display: flex; align-items: center; gap: 0.8rem;
     background: var(--color-white); border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -145,7 +145,7 @@
         <span id="list-count" class="text-muted"></span>
         <button class="btn btn-primary btn-sm" id="new-btn">+ Novo</button>
       </div>
-      <div id="cooldown-banner" class="cooldown-banner hidden"></div>
+      <div id="deploy-banner" class="deploy-banner hidden"></div>
       <div id="entries"></div>
     </div>
 
@@ -449,37 +449,85 @@ function selectCollection(key) {
 let dragSlug = null; // slug currently being dragged, or null
 
 // Cada gravação faz commit direto ao GitHub, que dispara um deploy no
-// Vercel — o CMS não sabe quando esse deploy acaba (não há webhook ligado),
-// por isso isto é só uma estimativa, para quem edita não pensar que "não
-// funcionou" e arrastar outra vez, ou fazer uma segunda alteração a meio do
-// deploy anterior.
-const REORDER_COOLDOWN_SECONDS = 20;
-let cooldownRemaining = 0;
-let cooldownTimer = null;
+// Vercel. lockMessage (null = destrancado) controla um banner + bloqueio da
+// lista, para quem edita não pensar que "não funcionou" e voltar a mexer a
+// meio de um deploy em curso.
+let lockMessage = null;
 
-function applyCooldownUI() {
-  const active = cooldownRemaining > 0;
-  const banner = el('cooldown-banner');
+function applyLockUI() {
+  const active = lockMessage !== null;
+  const banner = el('deploy-banner');
   banner.classList.toggle('hidden', !active);
-  if (active) {
-    banner.textContent = '⏳ A atualizar o site — evita arrastar ou editar mais durante ~' + cooldownRemaining + 's.';
-  }
-  el('entries').classList.toggle('cooldown-lock', active);
+  if (active) banner.textContent = lockMessage;
+  el('entries').classList.toggle('deploy-lock', active);
   el('new-btn').disabled = active;
 }
 
-function startCooldown(seconds) {
-  cooldownRemaining = seconds;
-  if (cooldownTimer) clearInterval(cooldownTimer);
-  applyCooldownUI();
-  cooldownTimer = setInterval(() => {
-    cooldownRemaining = Math.max(0, cooldownRemaining - 1);
-    if (cooldownRemaining === 0) {
-      clearInterval(cooldownTimer);
-      cooldownTimer = null;
+function setLock(message) {
+  lockMessage = message;
+  applyLockUI();
+}
+
+function clearLock() {
+  lockMessage = null;
+  applyLockUI();
+}
+
+// Fallback usado quando não dá para saber o estado real do deploy (ver
+// waitForDeploy) — uma espera fixa, só para não deixar a UI destrancada
+// logo a seguir a gravar.
+const FALLBACK_WAIT_SECONDS = 20;
+function waitFixed(seconds) {
+  let remaining = seconds;
+  const tick = () => {
+    if (remaining <= 0) {
+      clearLock();
+      return;
     }
-    applyCooldownUI();
-  }, 1000);
+    setLock('⏳ A atualizar o site — evita arrastar ou editar mais durante ~' + remaining + 's.');
+    remaining--;
+    setTimeout(tick, 1000);
+  };
+  tick();
+}
+
+// Poll a /api/deploy-status com o sha do commit que a gravação acabou de
+// produzir, até o Vercel reportar esse deploy como pronto (ou falhado, ou
+// até desistir ao fim de DEPLOY_POLL_TIMEOUT_MS — nunca fica trancado para
+// sempre). Se o endpoint falhar de todo (VERCEL_TOKEN/VERCEL_PROJECT_ID
+// ainda não configurados no Vercel, por exemplo), cai para waitFixed em vez
+// de tentar para sempre.
+const DEPLOY_POLL_INTERVAL_MS = 3000;
+const DEPLOY_POLL_TIMEOUT_MS = 180000; // ~3min
+async function waitForDeploy(sha) {
+  if (!sha) {
+    waitFixed(FALLBACK_WAIT_SECONDS);
+    return;
+  }
+  const startedAt = Date.now();
+  setLock('🔧 A compilar no Vercel…');
+  while (Date.now() - startedAt < DEPLOY_POLL_TIMEOUT_MS) {
+    let state;
+    try {
+      ({ state } = await api('/api/deploy-status?sha=' + encodeURIComponent(sha)));
+    } catch {
+      waitFixed(FALLBACK_WAIT_SECONDS);
+      return;
+    }
+    if (state === 'READY') {
+      setLock('✅ Site atualizado.');
+      setTimeout(clearLock, 2000);
+      return;
+    }
+    if (state === 'ERROR' || state === 'CANCELED') {
+      setLock('⚠️ O deploy falhou — confere o Vercel.');
+      setTimeout(clearLock, 4000);
+      return;
+    }
+    // BUILDING, QUEUED, INITIALIZING, PENDING — continua a tentar
+    await new Promise((r) => setTimeout(r, DEPLOY_POLL_INTERVAL_MS));
+  }
+  clearLock(); // desistiu depois do timeout — destranca de qualquer forma
 }
 
 function renderEntries() {
@@ -542,14 +590,14 @@ function renderEntries() {
   });
   el('list-view').classList.remove('hidden');
   el('editor-view').classList.add('hidden');
-  applyCooldownUI(); // um cooldown ativo sobrevive à troca de separador/coleção
+  applyLockUI(); // um bloqueio ativo sobrevive à troca de separador/coleção
 }
 
 // Reads the current DOM order (already live-updated by the dragover
 // handler above) and persists it as the new order:0,1,2... for every
 // entry in this collection.
 async function saveOrder() {
-  if (cooldownRemaining > 0) return; // #entries já está com pointer-events:none, isto é só defesa extra
+  if (lockMessage !== null) return; // #entries já está com pointer-events:none, isto é só defesa extra
   const c = COLLECTIONS[currentCollection];
   if (!c.supportsOrder) return;
   const domSlugs = [...el('entries').querySelectorAll('.entry-row')].map((r) => r.dataset.slug);
@@ -557,14 +605,14 @@ async function saveOrder() {
   if (domSlugs.join(',') === before.join(',')) return; // nothing actually moved
 
   try {
-    await api('/api/reorder', {
+    const { sha } = await api('/api/reorder', {
       method: 'POST',
       body: JSON.stringify({ collection: currentCollection, slugs: domSlugs }),
     });
     toast('Ordem guardada.');
     await refreshCurrentCollection();
     renderEntries();
-    startCooldown(REORDER_COOLDOWN_SECONDS);
+    waitForDeploy(sha);
   } catch (err) {
     toast(err.message, true);
     renderEntries(); // revert the optimistic DOM move on failure

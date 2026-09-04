@@ -85,6 +85,10 @@ Copia `.env.example` para `.env` (para `vercel dev` local) e preenche tudo.
 Para produção, mete as mesmas variáveis em Vercel → Project → Settings →
 Environment Variables.
 
+`VERCEL_TOKEN` / `VERCEL_PROJECT_ID` são opcionais — sem eles, o editor
+continua a funcionar, só cai para uma espera fixa depois de gravar em vez de
+saber a sério quando o deploy termina (ver "Estado do deploy" abaixo).
+
 ### 6. Correr localmente
 
 ```bash
@@ -111,6 +115,26 @@ uns minutos, com dois repositórios diferentes — um com o código a sério
 sozinho e ao qual o projeto de produção estava realmente ligado. Todos os
 pushes para o repositório "certo" não tinham efeito nenhum, porque o
 Vercel nunca ali esteve a olhar.
+
+## Estado do deploy
+
+Cada gravação é um commit direto ao repositório do site, que o Vercel apanha
+sozinho e dispara um deploy. Este CMS não recebe nenhum aviso quando esse
+deploy termina — não há webhook do Vercel para aqui, de propósito, para não
+precisar de guardar estado nenhum (nem base de dados, nem fila).
+
+Em vez disso, depois de gravar, o editor faz *polling* a `/api/deploy-status`
+com o sha do commit que acabou de criar (devolvido por `/api/entry` e
+`/api/reorder`), que por sua vez consulta a API do Vercel
+(`GET /v7/deployments?sha=...`) a perguntar o estado desse deploy exato. A
+lista fica bloqueada (sem arrastar, sem "+ Novo") enquanto isso, com uma
+mensagem a refletir o estado real — "a compilar", "pronto", ou "falhou" — em
+vez de uma contagem decrescente às cegas.
+
+Se `VERCEL_TOKEN`/`VERCEL_PROJECT_ID` não estiverem definidos (ou a consulta
+falhar por outra razão), `/api/deploy-status` responde com erro e o
+frontend cai automaticamente para uma espera fixa de 20s — nunca fica
+bloqueado à espera de uma resposta que nunca chega.
 
 ## Problema real que já aconteceu (e como o apanhar mais depressa)
 

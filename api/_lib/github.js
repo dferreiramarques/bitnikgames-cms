@@ -60,6 +60,8 @@ async function getFile(path) {
 // Creates or updates a file. Pass `sha` (from getFile) when updating an
 // existing file — GitHub rejects the write otherwise, which is the API's
 // own built-in protection against clobbering a concurrent edit.
+// Returns the new commit's sha — the caller uses it to poll Vercel for when
+// that exact commit finishes deploying (see api/deploy-status.js).
 async function putFile(path, content, message, sha) {
   const { owner, repo, branch } = target();
   const res = await gh(`/repos/${owner}/${repo}/contents/${path}`, {
@@ -72,6 +74,8 @@ async function putFile(path, content, message, sha) {
     }),
   });
   if (!res.ok) throw new Error(`GitHub putFile ${path} failed: ${res.status} ${await res.text()}`);
+  const data = await res.json();
+  return data.commit?.sha;
 }
 
 async function deleteFile(path, message, sha) {
@@ -81,6 +85,8 @@ async function deleteFile(path, message, sha) {
     body: JSON.stringify({ message, branch, sha }),
   });
   if (!res.ok) throw new Error(`GitHub deleteFile ${path} failed: ${res.status} ${await res.text()}`);
+  const data = await res.json();
+  return data.commit?.sha;
 }
 
 module.exports = { listDir, getFile, putFile, deleteFile, target };

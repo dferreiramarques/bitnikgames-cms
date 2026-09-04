@@ -36,6 +36,9 @@ module.exports = async (req, res) => {
 
   try {
     let updated = 0;
+    // sha fica com o commit mais recente feito no loop — como é sequencial
+    // (awaited a cada iteração), é sempre a tip da branch no fim do pedido.
+    let sha;
     for (let i = 0; i < slugs.length; i++) {
       const slug = slugs[i];
       const p = {
@@ -46,15 +49,15 @@ module.exports = async (req, res) => {
       const message = `content: reorder ${collectionKey}/${slug} -> ${i} (via CMS)`;
 
       if (pt && getOrder(pt.content) !== i) {
-        await putFile(p.pt, setOrder(pt.content, i), message, pt.sha);
+        sha = await putFile(p.pt, setOrder(pt.content, i), message, pt.sha);
         updated++;
       }
       if (en && getOrder(en.content) !== i) {
-        await putFile(p.en, setOrder(en.content, i), message, en.sha);
+        sha = await putFile(p.en, setOrder(en.content, i), message, en.sha);
         updated++;
       }
     }
-    res.status(200).json({ ok: true, updated });
+    res.status(200).json({ ok: true, updated, sha });
   } catch (err) {
     res.status(500).json({ error: err.message || "Erro a falar com o GitHub." });
   }
