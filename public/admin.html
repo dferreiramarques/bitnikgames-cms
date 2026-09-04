@@ -87,7 +87,22 @@
   .hidden { display: none !important; }
   #loading { text-align: center; padding: 3rem 0; color: var(--text-muted); }
 
-  /* --- docs / ajuda --- */
+  /* --- docs / ajuda: modal por cima da lista/editor, não os substitui --- */
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(43, 27, 18, 0.45);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1.5rem; z-index: 200;
+  }
+  .modal-panel {
+    background: var(--color-white); border-radius: var(--radius-lg);
+    max-width: 720px; width: 100%; max-height: 85vh; overflow-y: auto;
+    padding: 1.5rem 1.75rem; box-shadow: var(--shadow-card-hover);
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .modal-header h2 { margin: 0; font-family: var(--font-display); font-size: 1.15rem; }
   #docs-content h2 { font-family: var(--font-display); font-size: 1.3rem; margin: 1.6rem 0 0.6rem; }
   #docs-content h2:first-child { margin-top: 0; }
   #docs-content h3 { font-family: var(--font-display); font-size: 1rem; margin: 1.2rem 0 0.4rem; }
@@ -163,11 +178,17 @@
       </div>
     </div>
 
-    <div id="docs-view" class="hidden">
-      <button class="btn btn-ghost btn-sm" id="docs-back-btn" style="margin-bottom:1rem">&larr; Voltar</button>
+  </main>
+
+  <div id="docs-modal" class="modal-backdrop hidden">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2>Ajuda</h2>
+        <button class="btn btn-ghost btn-sm" id="docs-close-btn">✕</button>
+      </div>
       <div id="docs-content"></div>
     </div>
-  </main>
+  </div>
 
   <div id="toast"></div>
 
@@ -331,11 +352,14 @@ function renderDocs() {
   el('docs-content').innerHTML = html;
 }
 
+// Modal por cima da lista/editor — nunca esconde/troca a view de trás, para
+// não perder o que estava lá (um textarea a meio de edição, por exemplo).
 function showDocs() {
   renderDocs();
-  el('list-view').classList.add('hidden');
-  el('editor-view').classList.add('hidden');
-  el('docs-view').classList.remove('hidden');
+  el('docs-modal').classList.remove('hidden');
+}
+function hideDocs() {
+  el('docs-modal').classList.add('hidden');
 }
 
 // Not a real YAML parser — same deliberate scope as the server-side
@@ -560,11 +584,13 @@ el('field-ref-toggle').onclick = () => {
 };
 
 el('help-btn').onclick = showDocs;
-el('docs-back-btn').onclick = () => {
-  el('docs-view').classList.add('hidden');
-  if (COLLECTIONS && currentCollection) renderEntries();
-  else el('list-view').classList.remove('hidden');
-};
+el('docs-close-btn').onclick = hideDocs;
+el('docs-modal').addEventListener('click', (e) => {
+  if (e.target === el('docs-modal')) hideDocs(); // clique fora do painel = fechar
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !el('docs-modal').classList.contains('hidden')) hideDocs();
+});
 
 el('save-btn').onclick = async () => {
   const slug = el('slug-input').value.trim();
