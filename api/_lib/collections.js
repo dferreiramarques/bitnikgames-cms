@@ -108,6 +108,27 @@ const COLLECTIONS = {
         "",
       ].join("\n"),
   },
+  // Cartões da página "Jogar Online" — cada entrada é um jogo com link para
+  // o servidor onde corre (Bulbous, Capivaras, etc.). Sem featured/draft,
+  // só título + descrição + link, com drag-and-drop para a ordem em que
+  // aparecem na página.
+  playOnline: {
+    label: "Jogar Online",
+    basePath: "src/content/play-online",
+    requiredFields: ["title", "description", "url"],
+    supportsFeatured: false,
+    supportsOrder: true,
+    template: (slug) =>
+      [
+        "---",
+        `title: "${slug}"`,
+        'description: "Descrição a preencher."',
+        'url: "https://exemplo.up.railway.app/"',
+        "order: 0",
+        "---",
+        "",
+      ].join("\n"),
+  },
   // Coleção "singleton" — só faz sentido ter uma entrada, de slug "home",
   // com o texto do hero da homepage (título, eyebrow, subtítulo). Sem
   // featured/order porque não há lista a ordenar.

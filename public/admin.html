@@ -243,6 +243,15 @@ const FIELD_DOCS = {
       { field: 'draft', type: 'true/false', required: false, desc: 'Com true, a entrada fica só guardada aqui — sem página nem link no site. Por omissão: false.' },
     ],
   },
+  playOnline: {
+    label: 'Jogar Online',
+    fields: [
+      { field: 'title', type: 'texto', required: true, desc: 'Nome do jogo, tal como aparece no cartão.' },
+      { field: 'description', type: 'texto', required: true, desc: 'Frase curta no cartão.' },
+      { field: 'url', type: 'URL', required: true, desc: 'Link do servidor onde o jogo corre (abre num separador novo, "Jogar agora").' },
+      { field: 'order', type: 'número', required: false, desc: 'Arrasta ⠿ na lista para mudar.' },
+    ],
+  },
   hero: {
     label: 'Hero (Home)',
     fields: [
