@@ -138,6 +138,9 @@ const COLLECTIONS = {
     requiredFields: ["title", "eyebrow", "subtitle"],
     supportsFeatured: false,
     supportsOrder: false,
+    // Trava o slug a "home" no editor (ver admin.html) — não há conceito de
+    // "outra entrada" nesta coleção, renomear não faz sentido.
+    singleton: true,
     template: () =>
       [
         "---",
@@ -158,6 +161,7 @@ const COLLECTIONS = {
     basePath: "src/content/footer",
     supportsFeatured: false,
     supportsOrder: false,
+    singleton: true,
     template: () =>
       [
         "---",

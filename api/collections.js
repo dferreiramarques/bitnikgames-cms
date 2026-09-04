@@ -32,7 +32,7 @@ module.exports = async (req, res) => {
   try {
     const result = {};
     for (const key of collectionKeys()) {
-      const { label, basePath, supportsFeatured, supportsOrder, supportsDraft } = getCollection(key);
+      const { label, basePath, supportsFeatured, supportsOrder, supportsDraft, singleton } = getCollection(key);
       const ptFiles = await listDir(`${basePath}/pt`);
       const enNames = new Set((await listDir(`${basePath}/en`)).map((f) => f.name));
 
@@ -64,6 +64,7 @@ module.exports = async (req, res) => {
         supportsFeatured: Boolean(supportsFeatured),
         supportsOrder: Boolean(supportsOrder),
         supportsDraft: Boolean(supportsDraft),
+        singleton: Boolean(singleton),
       };
     }
     res.status(200).json(result);

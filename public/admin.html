@@ -133,6 +133,7 @@
         <label for="slug-input" style="font-family:var(--font-display);font-weight:700">Slug</label>
         <input id="slug-input" type="text" placeholder="nome-do-jogo">
         <span class="text-muted" style="font-size:0.8rem">letras minúsculas, números e hífens</span>
+        <span class="text-muted rename-hint hidden" id="rename-hint" style="font-size:0.8rem">⚠️ Mudar isto muda o URL da página — quem tiver o link antigo passa a dar 404.</span>
       </div>
       <div class="toggle-rows">
         <div class="featured-row hidden" id="featured-row">
@@ -504,7 +505,14 @@ async function saveOrder() {
 async function openEditor(slug) {
   currentSlug = slug;
   el('slug-input').value = slug || '';
-  el('slug-input').disabled = Boolean(slug);
+  // Coleções singleton (hero, footer) só têm a entrada "home" — trava o
+  // slug para não se poder "renomear" a única entrada para outra coisa.
+  // Nas outras, editar o slug de uma entrada existente é um rename (ver
+  // save-btn abaixo): apaga os ficheiros antigos depois de escrever os
+  // novos, para não deixar lixo nem partir o site com duas versões.
+  const isSingleton = Boolean(COLLECTIONS[currentCollection].singleton);
+  el('slug-input').disabled = Boolean(slug) && isSingleton;
+  el('rename-hint').classList.toggle('hidden', !slug || isSingleton);
   el('delete-btn').classList.toggle('hidden', !slug);
 
   // For a brand new entry there's no real slug yet — ask the server for
@@ -579,14 +587,32 @@ el('save-btn').onclick = async () => {
     pt = writeDraft(pt, draft);
     en = writeDraft(en, draft);
   }
+  // currentSlug é o slug com que o editor abriu; slug é o que está agora no
+  // input. Diferentes = renomear: escreve nos ficheiros novos primeiro, só
+  // apaga os antigos depois de confirmar que gravou — para nunca perder
+  // conteúdo se o pedido a meio falhar (rede, sessão expirada, etc.).
+  const renaming = Boolean(currentSlug) && slug !== currentSlug;
+
   el('save-btn').disabled = true;
   el('save-btn').textContent = 'A guardar…';
   try {
+    if (renaming) {
+      const check = await api('/api/entry?collection=' + currentCollection + '&slug=' + encodeURIComponent(slug));
+      if (check.exists) {
+        throw new Error('Já existe uma entrada com o slug "' + slug + '" nesta coleção.');
+      }
+    }
     await api('/api/entry', {
       method: 'PUT',
       body: JSON.stringify({ collection: currentCollection, slug, pt, en }),
     });
-    toast('Guardado. O site vai fazer redeploy automaticamente.');
+    if (renaming) {
+      await api('/api/entry?collection=' + currentCollection + '&slug=' + encodeURIComponent(currentSlug), {
+        method: 'DELETE',
+      });
+      currentSlug = slug;
+    }
+    toast(renaming ? 'Slug alterado. O site vai fazer redeploy automaticamente.' : 'Guardado. O site vai fazer redeploy automaticamente.');
     await refreshCurrentCollection();
     renderEntries();
   } catch (err) {
